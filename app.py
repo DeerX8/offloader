@@ -729,6 +729,48 @@ def on_clear_finished():
     transfer_state["finish_summary"] = None
 
 
+@socketio.on("speed_test")
+def on_speed_test():
+    """Write a real test file to NAS and measure throughput."""
+    if not drive_state["nas_mounted"]:
+        emit("speed_test_error", {"error": "NAS not connected"})
+        return
+
+    def _run():
+        test_file = Path(NAS_MOUNT) / ".offloader_speedtest.tmp"
+        test_size = 256 * 1024 * 1024  # 256 MB
+        chunk = os.urandom(CHUNK_SIZE)  # 4 MB random data
+        written = 0
+        try:
+            start = time.time()
+            with open(test_file, "wb") as f:
+                while written < test_size:
+                    to_write = min(CHUNK_SIZE, test_size - written)
+                    f.write(chunk[:to_write])
+                    f.flush()
+                    written += to_write
+                    pct = written / test_size * 100
+                    socketio.emit("speed_test_progress", {"percent": pct})
+                os.fsync(f.fileno())
+            elapsed = time.time() - start
+            bps = written / elapsed if elapsed > 0 else 0
+            socketio.emit("speed_test_done", {
+                "bytes_per_sec": bps,
+                "mbps": bps / (1024 * 1024),
+                "elapsed": elapsed,
+                "test_size": test_size,
+            })
+        except Exception as e:
+            socketio.emit("speed_test_error", {"error": str(e)})
+        finally:
+            try:
+                test_file.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
