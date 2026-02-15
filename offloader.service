@@ -1,0 +1,19 @@
+[Unit]
+Description=Offloader - Footage Transfer Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/user/offloader
+ExecStart=/usr/bin/python3 /home/user/offloader/app.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Environment
+Environment="PYTHONUNBUFFERED=1"
+
+[Install]
+WantedBy=multi-user.target
