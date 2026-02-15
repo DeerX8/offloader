@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offloader — Desktop Preview</title>
+<style>
+  :root {
+    --bg: #0c0c14; --surface: #12121e; --surface2: #1a1a2a;
+    --border: #ffffff0d; --border2: #1e1e30;
+    --text: #e2e8f0; --text2: #94a3b8; --text3: #4a5568;
+    --accent: #6d28d9; --accent2: #818cf8; --accent-light: #a78bfa;
+    --green: #22c55e; --red: #ef4444; --orange: #f59e0b;
+    --radius: 10px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; overflow-x: hidden;
+  }
+
+  /* ── RESPONSIVE APP CONTAINER ── */
+  .app { max-width: 640px; margin: 0 auto; padding: 16px; padding-bottom: 100px; }
+
+  @media (min-width: 900px) {
+    .app { max-width: 960px; padding: 24px 32px; padding-bottom: 100px; }
+  }
+  @media (min-width: 1200px) {
+    .app { max-width: 1280px; padding: 28px 40px; padding-bottom: 100px; }
+  }
+
+  /* ── HEADER ── */
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 20px; }
+  .header h1 { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+  .header-sub { font-size: 11px; color: var(--text3); margin-top: 2px; font-family: monospace; }
+  .btn-icon {
+    width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--border2);
+    background: var(--surface); color: var(--text2); font-size: 18px;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .btn-icon:hover { border-color: var(--accent); background: var(--surface2); }
+
+  @media (min-width: 900px) {
+    .header { padding: 16px 0 24px; }
+    .header h1 { font-size: 26px; }
+    .header-sub { font-size: 12px; }
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; margin-bottom: 10px;
+    transition: border-color .15s;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card-label {
+    font-size: 9px; font-weight: 600; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--text3); margin-bottom: 8px;
+  }
+
+  /* ── TWO-COLUMN STATUS GRID (Phase 1) ── */
+  .status-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  @media (min-width: 900px) {
+    .status-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card { padding: 18px; margin-bottom: 0; }
+    .card-label { font-size: 10px; margin-bottom: 10px; }
+  }
+  @media (min-width: 1200px) {
+    .status-grid { gap: 16px; }
+    .card { padding: 20px; }
+  }
+
+  /* ── STATUS DOTS ── */
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .dot-g { background: var(--green); box-shadow: 0 0 6px #22c55e80; }
+  .dot-r { background: var(--red); }
+  .dot-o { background: var(--orange); box-shadow: 0 0 6px #f59e0b80; }
+  .status-row { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .status-detail { font-size: 10px; color: var(--text3); margin-top: 3px; font-family: monospace; }
+
+  @media (min-width: 900px) {
+    .status-row { font-size: 14px; gap: 10px; }
+    .status-detail { font-size: 11px; margin-top: 5px; }
+    .dot { width: 8px; height: 8px; }
+  }
+
+  /* ── PATH DISPLAY ── */
+  .path-display {
+    background: var(--bg); border: 1px solid var(--border2); border-radius: 6px;
+    padding: 7px 10px; font-family: monospace; font-size: 11px; color: var(--accent2);
+    word-break: break-all; margin-bottom: 8px;
+  }
+  @media (min-width: 900px) {
+    .path-display { padding: 9px 12px; font-size: 12px; }
+  }
+
+  /* ── FIELDS ── */
+  .field { margin-bottom: 8px; }
+  .field label {
+    display: block; font-size: 10px; font-weight: 600; color: var(--text3);
+    margin-bottom: 3px; letter-spacing: 0.3px;
+  }
+  .field input, .field select {
+    width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border2);
+    background: var(--bg); color: var(--text); font-size: 13px; font-family: monospace; outline: none;
+    transition: border-color .15s;
+  }
+  .field input:focus { border-color: var(--accent); }
+  @media (min-width: 900px) {
+    .field input, .field select { padding: 9px 12px; font-size: 14px; }
+    .field label { font-size: 11px; margin-bottom: 4px; }
+  }
+
+  /* ── BUTTONS ── */
+  .btn {
+    padding: 8px 16px; border-radius: 7px; border: none; font-size: 12px;
+    font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+    transition: transform .08s, opacity .15s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:hover { opacity: 0.9; }
+  .btn-p { background: var(--accent); color: #fff; }
+  .btn-s { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+  .btn-d { background: #ef444418; color: var(--red); border: 1px solid #ef444430; }
+  .btn-sm { padding: 6px 12px; font-size: 11px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 6px; margin-top: 8px; }
+
+  @media (min-width: 900px) {
+    .btn { padding: 9px 18px; font-size: 13px; border-radius: 8px; }
+    .btn-sm { padding: 7px 14px; font-size: 12px; }
+  }
+
+  /* ── SEARCH + FILTER BAR (Phase 2) ── */
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px;
+  }
+  .search-box {
+    flex: 1; min-width: 180px; position: relative;
+  }
+  .search-box input {
+    width: 100%; padding: 8px 10px 8px 32px; border-radius: 7px;
+    border: 1px solid var(--border2); background: var(--bg); color: var(--text);
+    font-size: 12px; outline: none; font-family: inherit;
+    transition: border-color .15s;
+  }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: var(--text3); }
+  .search-icon {
+    position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--text3); pointer-events: none;
+  }
+
+  .quick-filters {
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  .filter-chip {
+    padding: 5px 10px; border-radius: 5px; font-size: 10px; font-weight: 600;
+    border: 1px solid var(--border2); background: var(--surface2); color: var(--text3);
+    cursor: pointer; transition: all .12s; white-space: nowrap;
+  }
+  .filter-chip:hover { border-color: var(--accent); color: var(--text2); }
+  .filter-chip.active { border-color: var(--accent); background: #6d28d920; color: var(--accent-light); }
+
+  .sort-select {
+    padding: 5px 10px; border-radius: 5px; font-size: 10px; font-weight: 600;
+    border: 1px solid var(--border2); background: var(--surface2); color: var(--text2);
+    cursor: pointer; outline: none;
+  }
+
+  @media (min-width: 900px) {
+    .search-box input { padding: 9px 12px 9px 34px; font-size: 13px; }
+    .filter-chip { padding: 6px 12px; font-size: 11px; }
+    .sort-select { padding: 6px 12px; font-size: 11px; }
+  }
+
+  /* ── FILE LIST (Phase 1 + 2: table on desktop) ── */
+  .file-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .file-count { font-size: 11px; color: var(--text3); }
+  .file-list {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    max-height: 50vh; overflow-y: auto;
+  }
+  @media (min-width: 900px) {
+    .file-list { max-height: 55vh; }
+    .file-count { font-size: 12px; }
+  }
+  @media (min-width: 1200px) {
+    .file-list { max-height: 60vh; }
+  }
+
+  /* Table header - desktop only */
+  .file-table-head {
+    display: none;
+  }
+  @media (min-width: 900px) {
+    .file-table-head {
+      display: grid; grid-template-columns: 28px 1fr 80px 65px 130px;
+      gap: 8px; padding: 8px 14px; font-size: 10px; font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase; color: var(--text3);
+      border-bottom: 1px solid var(--border2); position: sticky; top: 0;
+      background: var(--bg); z-index: 2; cursor: pointer;
+    }
+    .file-table-head span:hover { color: var(--text2); }
+    .sort-arrow { font-size: 8px; margin-left: 2px; }
+  }
+
+  .file-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border-bottom: 1px solid #14141f; cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background .1s;
+  }
+  .file-item:last-child { border-bottom: none; }
+  .file-item.active, .file-item:hover { background: #6d28d908; }
+
+  @media (min-width: 900px) {
+    .file-item {
+      display: grid; grid-template-columns: 28px 1fr 80px 65px 130px;
+      gap: 8px; padding: 10px 14px; align-items: center;
+    }
+  }
+
+  .chk {
+    width: 16px; height: 16px; border-radius: 4px; flex-shrink: 0;
+    border: 1.5px solid var(--border2); display: flex; align-items: center;
+    justify-content: center; font-size: 9px; color: transparent; transition: all .12s;
+  }
+  .chk.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  @media (min-width: 900px) {
+    .chk { width: 18px; height: 18px; border-radius: 5px; font-size: 10px; }
+  }
+
+  .file-name {
+    flex: 1; font-size: 12px; font-family: monospace;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  .file-size { font-size: 10px; color: var(--text3); font-family: monospace; flex-shrink: 0; }
+  .file-ext {
+    font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+    font-family: monospace; flex-shrink: 0; text-align: center;
+  }
+  .file-date { display: none; font-size: 10px; color: var(--text3); font-family: monospace; }
+
+  @media (min-width: 900px) {
+    .file-name { font-size: 13px; }
+    .file-size { font-size: 11px; }
+    .file-ext { font-size: 9px; padding: 2px 7px; border-radius: 4px; }
+    .file-date { display: block; }
+  }
+
+  /* ── TRANSFER HISTORY (Phase 2) ── */
+  .history-card { margin-top: 12px; }
+  .history-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid #14141f; font-size: 12px;
+  }
+  .history-item:last-child { border-bottom: none; }
+  .history-icon {
+    width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 14px; flex-shrink: 0;
+  }
+  .history-icon.ok { background: #22c55e10; }
+  .history-icon.err { background: #ef444410; }
+  .history-meta { flex: 1; min-width: 0; }
+  .history-title { font-weight: 600; font-size: 12px; color: var(--text); }
+  .history-sub { font-size: 10px; color: var(--text3); font-family: monospace; margin-top: 2px; }
+  .history-stats { text-align: right; flex-shrink: 0; }
+  .history-stats .size { font-size: 12px; font-weight: 600; color: var(--text2); }
+  .history-stats .speed { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+  @media (min-width: 900px) {
+    .history-item { padding: 12px 0; gap: 14px; }
+    .history-title { font-size: 13px; }
+    .history-sub { font-size: 11px; }
+    .history-stats .size { font-size: 13px; }
+    .history-stats .speed { font-size: 11px; }
+  }
+
+  /* ── TWO-COLUMN LAYOUT for files + history on very wide (Phase 1) ── */
+  .main-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+  @media (min-width: 1200px) {
+    .main-grid { grid-template-columns: 1fr 340px; gap: 16px; }
+  }
+
+  /* ── BOTTOM BAR ── */
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border2);
+    padding: 10px 16px; padding-bottom: max(10px, env(safe-area-inset-bottom));
+    display: flex; align-items: center; justify-content: space-between; z-index: 100;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .bottom-info { font-size: 12px; color: var(--text2); }
+  .bottom-info small { display: block; font-size: 10px; color: var(--text3); }
+
+  @media (min-width: 900px) {
+    .bottom-bar { padding: 12px 32px; }
+    .bottom-info { font-size: 13px; }
+    .bottom-info small { font-size: 11px; }
+  }
+  @media (min-width: 1200px) {
+    .bottom-bar { padding: 14px 40px; }
+  }
+
+  /* ── KEYBOARD SHORTCUTS HINT (Phase 2) ── */
+  .kbd-hint {
+    display: none; font-size: 10px; color: var(--text3); margin-left: 12px;
+  }
+  .kbd-hint kbd {
+    padding: 1px 5px; border-radius: 3px; background: var(--surface2);
+    border: 1px solid var(--border2); font-family: monospace; font-size: 9px;
+    color: var(--text2);
+  }
+  @media (min-width: 900px) {
+    .kbd-hint { display: inline-flex; align-items: center; gap: 6px; }
+  }
+
+  /* ── KEYBOARD SHORTCUTS OVERLAY ── */
+  .shortcuts-overlay {
+    display: none; position: fixed; inset: 0; background: #00000080; z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .shortcuts-overlay.open { display: flex; }
+  .shortcuts-panel {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 16px;
+    padding: 24px 28px; max-width: 440px; width: 90%;
+  }
+  .shortcuts-title {
+    font-size: 16px; font-weight: 700; margin-bottom: 16px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .shortcut-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid #14141f;
+  }
+  .shortcut-row:last-child { border: none; }
+  .shortcut-label { font-size: 13px; color: var(--text2); }
+  .shortcut-keys { display: flex; gap: 4px; }
+  .shortcut-keys kbd {
+    padding: 3px 8px; border-radius: 4px; background: var(--bg);
+    border: 1px solid var(--border2); font-family: monospace; font-size: 11px;
+    color: var(--text); min-width: 28px; text-align: center;
+  }
+
+  /* ── SETTINGS OVERLAY ── */
+  .overlay { display: none; position: fixed; inset: 0; background: #00000080; z-index: 150; }
+  .overlay.open { display: flex; align-items: flex-end; justify-content: center; }
+  @media (min-width: 900px) {
+    .overlay.open { align-items: center; }
+  }
+  .settings-panel {
+    background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 640px;
+    max-height: 85vh; overflow-y: auto; padding: 20px 16px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  @media (min-width: 900px) {
+    .settings-panel { border-radius: 16px; max-width: 520px; padding: 28px 24px; }
+  }
+  .settings-handle { width: 36px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 16px; }
+  @media (min-width: 900px) { .settings-handle { display: none; } }
+  .settings-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+
+  /* ── TOGGLES ── */
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; }
+  .toggle-row span { font-size: 12px; color: var(--text2); }
+  .toggle { position: relative; width: 42px; height: 22px; cursor: pointer; }
+  .toggle input { display: none; }
+  .toggle .sl {
+    position: absolute; inset: 0; background: var(--surface2); border-radius: 11px;
+    border: 1px solid var(--border2); transition: background .2s;
+  }
+  .toggle .sl::before {
+    content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--text3); top: 2px; left: 2px; transition: transform .2s, background .2s;
+  }
+  .toggle input:checked + .sl { background: var(--accent); border-color: var(--accent); }
+  .toggle input:checked + .sl::before { transform: translateX(20px); background: #fff; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  /* ── TRANSFER VIEW ── */
+  .xfer-big { text-align: center; margin-bottom: 10px; }
+  .xfer-pct { font-size: 36px; font-weight: 800; font-family: monospace; letter-spacing: -2px; }
+  .xfer-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .xfer-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-radius: 5px; }
+  .xfer-active { background: #f59e0b18; border: 1px solid #f59e0b30; color: var(--orange); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  .pulse { animation: pulse 2s infinite; }
+  .prog-bg { width: 100%; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin: 10px 0; }
+  .prog-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); box-shadow: 0 0 10px #6d28d940; transition: width .3s; }
+  .prog-meta { display: flex; justify-content: space-between; font-size: 10px; font-family: monospace; }
+  .prog-meta .speed { color: var(--text3); }
+  .prog-meta .eta { color: var(--accent2); }
+  .queue-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-size: 10px; font-family: monospace; }
+  .queue-done { opacity: 0.35; color: var(--text3); }
+  .queue-cur { color: var(--accent-light); }
+  .queue-pend { color: var(--text3); }
+  .file-prog { width: 100%; height: 2px; background: var(--surface2); border-radius: 1px; margin-top: 4px; overflow: hidden; }
+  .file-prog-bar { height: 100%; background: var(--accent); border-radius: 1px; transition: width .3s; }
+
+  /* ── COMPLETE VIEW ── */
+  .complete-icon { font-size: 40px; margin-bottom: 8px; }
+  .complete-title { font-size: 18px; font-weight: 700; color: var(--green); margin-bottom: 4px; }
+  .complete-sub { font-size: 12px; color: var(--text3); }
+  .complete-detail { font-size: 11px; color: var(--text3); font-family: monospace; margin-top: 6px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-80px);
+    background: var(--red); color: #fff; padding: 8px 18px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; z-index: 200; transition: transform .3s; max-width: 90vw; text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.ok { background: var(--green); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* ── SPEED TEST ── */
+  .speedtest-box {
+    background: var(--bg); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 12px; margin-top: 8px;
+  }
+  .speedtest-result {
+    display: flex; align-items: center; gap: 10px; margin-top: 8px;
+  }
+  .speedtest-value {
+    font-size: 22px; font-weight: 800; font-family: monospace; color: var(--accent-light);
+  }
+  .speedtest-label { font-size: 10px; color: var(--text3); }
+  .speedtest-bar {
+    width: 100%; height: 4px; background: var(--surface2); border-radius: 2px;
+    overflow: hidden; margin-top: 8px;
+  }
+  .speedtest-bar-fill {
+    height: 100%; width: 0%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    transition: width .15s linear;
+  }
+  @keyframes speedtest-pulse {
+    0% { opacity: .6; } 50% { opacity: 1; } 100% { opacity: .6; }
+  }
+  .speedtest-running { animation: speedtest-pulse 1s infinite; }
+
+  /* ── CONFIRM OVERLAY ── */
+  .confirm-overlay {
+    display: none; position: fixed; inset: 0; background: #00000080; z-index: 180;
+    align-items: center; justify-content: center;
+  }
+  .confirm-overlay.open { display: flex; }
+  .confirm-panel {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 16px;
+    padding: 24px 28px; max-width: 480px; width: 90%;
+  }
+  .confirm-title {
+    font-size: 18px; font-weight: 700; margin-bottom: 16px;
+  }
+  .confirm-summary {
+    background: var(--bg); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 14px; margin-bottom: 16px;
+  }
+  .confirm-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0; font-size: 13px;
+  }
+  .confirm-row .label { color: var(--text3); }
+  .confirm-row .value { color: var(--text); font-family: monospace; font-weight: 600; }
+  .confirm-dest {
+    font-family: monospace; font-size: 12px; color: var(--accent2);
+    padding: 8px 10px; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: 6px; margin-bottom: 16px; word-break: break-all;
+  }
+  .confirm-eta {
+    font-size: 11px; color: var(--text3); text-align: center; margin-bottom: 16px;
+    font-family: monospace;
+  }
+  .confirm-eta .eta-value { color: var(--accent-light); font-weight: 600; }
+  .confirm-btns {
+    display: flex; gap: 8px;
+  }
+
+  /* ── ETA BADGE in bottom bar ── */
+  .eta-badge {
+    font-size: 10px; color: var(--text3); font-family: monospace;
+    margin-top: 1px;
+  }
+  .eta-badge .eta-val { color: var(--accent2); font-weight: 600; }
+
+  /* ── PREVIEW BADGE ── */
+  .preview-badge {
+    position: fixed; top: 12px; right: 12px; z-index: 300;
+    background: var(--accent); color: #fff; padding: 6px 14px; border-radius: 8px;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    box-shadow: 0 4px 20px #6d28d960;
+  }
+</style>
+</head>
+<body>
+
+<div class="preview-badge">DESKTOP PREVIEW — Phase 1 + 2</div>
+
+<div class="app" id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>Offloader</h1>
+      <div class="header-sub">offloader.local:8080</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="kbd-hint">Press <kbd>?</kbd> for shortcuts</span>
+      <button class="btn-icon" onclick="toggleShortcuts()" title="Keyboard Shortcuts">&#x2328;</button>
+      <button class="btn-icon" onclick="toggleSettings()" title="Settings">&#x2699;</button>
+    </div>
+  </div>
+
+  <!-- ═══ IDLE VIEW ═══ -->
+  <div id="view-idle">
+
+    <!-- Phase 1: Two-column status grid -->
+    <div class="status-grid">
+      <!-- Drive Card -->
+      <div class="card">
+        <div class="card-label">USB Drive</div>
+        <div class="status-row">
+          <span class="dot dot-g"></span>
+          <span>Samsung T7</span>
+        </div>
+        <div class="status-detail">/dev/sdb1 &bull; 931.5G &bull; exFAT</div>
+      </div>
+
+      <!-- NAS Card -->
+      <div class="card">
+        <div class="card-label">NAS Destination</div>
+        <div class="status-row" style="margin-bottom:6px">
+          <span class="dot dot-g"></span>
+          <span>Connected</span>
+        </div>
+        <div class="path-display">//100.109.23.38/archive/wedding-shoot</div>
+        <div class="field">
+          <label>Project Folder</label>
+          <div style="display:flex;gap:6px">
+            <input type="text" value="wedding-shoot" style="flex:1" />
+            <button class="btn btn-sm btn-s">Set</button>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-sm btn-d">Disconnect</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content area: files + history side by side on wide screens -->
+    <div class="main-grid">
+
+      <!-- Files Card -->
+      <div class="card" style="margin-bottom:0">
+        <div class="file-header">
+          <div class="card-label" style="margin:0">Files on Drive</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="file-count" id="file-count">24 files &bull; 187.3 GB</span>
+          </div>
+        </div>
+
+        <!-- Phase 2: Search + Filter toolbar -->
+        <div class="toolbar">
+          <div class="search-box">
+            <span class="search-icon">&#x1F50D;</span>
+            <input type="text" placeholder="Search files..." id="search-input" oninput="filterFiles()" />
+          </div>
+          <div class="quick-filters">
+            <button class="filter-chip active" onclick="setFilter(this,'all')">All</button>
+            <button class="filter-chip" onclick="setFilter(this,'video')">Video</button>
+            <button class="filter-chip" onclick="setFilter(this,'image')">Image</button>
+            <button class="filter-chip" onclick="setFilter(this,'audio')">Audio</button>
+            <button class="filter-chip" onclick="setFilter(this,'large')">&#62; 1 GB</button>
+          </div>
+          <select class="sort-select" id="sort-select" onchange="sortFiles()">
+            <option value="name">Sort: Name</option>
+            <option value="size-desc" selected>Sort: Size &#x2193;</option>
+            <option value="size-asc">Sort: Size &#x2191;</option>
+            <option value="type">Sort: Type</option>
+            <option value="date">Sort: Date</option>
+          </select>
+        </div>
+
+        <!-- Quick select row -->
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+          <button class="btn btn-sm btn-s" onclick="selectAll()">Select All</button>
+          <button class="btn btn-sm btn-s" onclick="selectNone()">None</button>
+          <span style="font-size:10px;color:var(--text3)">|</span>
+          <button class="btn btn-sm btn-s" onclick="selectByType('video')">All Video</button>
+          <button class="btn btn-sm btn-s" onclick="selectByType('image')">All Images</button>
+          <button class="btn btn-sm btn-s" onclick="selectByType('audio')">All Audio</button>
+        </div>
+
+        <div class="file-list" id="file-list">
+          <!-- Table header (desktop only) -->
+          <div class="file-table-head">
+            <span></span>
+            <span onclick="sortBy('name')">Name <span class="sort-arrow">&#x25B2;</span></span>
+            <span onclick="sortBy('size')">Size</span>
+            <span onclick="sortBy('type')">Type</span>
+            <span onclick="sortBy('date')">Modified</span>
+          </div>
+          <!-- Files will be rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Phase 2: Transfer History (sidebar on wide) -->
+      <div>
+        <div class="card history-card">
+          <div class="card-label">Transfer History</div>
+
+          <div class="history-item">
+            <div class="history-icon ok">&#x2705;</div>
+            <div class="history-meta">
+              <div class="history-title">fishing</div>
+              <div class="history-sub">Feb 14 &bull; 12:34 PM &bull; 18m 42s</div>
+            </div>
+            <div class="history-stats">
+              <div class="size">234.5 GB</div>
+              <div class="speed">~209 MB/s avg</div>
+            </div>
+          </div>
+
+          <div class="history-item">
+            <div class="history-icon ok">&#x2705;</div>
+            <div class="history-meta">
+              <div class="history-title">sunset-timelapse</div>
+              <div class="history-sub">Feb 13 &bull; 9:10 AM &bull; 4m 12s</div>
+            </div>
+            <div class="history-stats">
+              <div class="size">52.1 GB</div>
+              <div class="speed">~206 MB/s avg</div>
+            </div>
+          </div>
+
+          <div class="history-item">
+            <div class="history-icon err">&#x26A0;&#xFE0F;</div>
+            <div class="history-meta">
+              <div class="history-title">drone-footage</div>
+              <div class="history-sub">Feb 12 &bull; 3:22 PM &bull; 22m 8s &bull; 2 errors</div>
+            </div>
+            <div class="history-stats">
+              <div class="size">312.0 GB</div>
+              <div class="speed">~235 MB/s avg</div>
+            </div>
+          </div>
+
+          <div class="history-item">
+            <div class="history-icon ok">&#x2705;</div>
+            <div class="history-meta">
+              <div class="history-title">concert-backup</div>
+              <div class="history-sub">Feb 11 &bull; 7:45 PM &bull; 8m 33s</div>
+            </div>
+            <div class="history-stats">
+              <div class="size">98.7 GB</div>
+              <div class="speed">~192 MB/s avg</div>
+            </div>
+          </div>
+
+          <div class="history-item">
+            <div class="history-icon ok">&#x2705;</div>
+            <div class="history-meta">
+              <div class="history-title">client-review</div>
+              <div class="history-sub">Feb 10 &bull; 11:00 AM &bull; 1m 45s</div>
+            </div>
+            <div class="history-stats">
+              <div class="size">18.2 GB</div>
+              <div class="speed">~173 MB/s avg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /main-grid -->
+  </div><!-- /view-idle -->
+
+  <!-- ═══ TRANSFER VIEW (with cancel button) ═══ -->
+  <div id="view-transfer" style="display:none">
+    <div class="status-grid">
+      <div class="card" style="grid-column: 1 / -1">
+        <div class="xfer-big">
+          <div class="xfer-pct" id="t-pct">47%</div>
+          <div class="xfer-sub" id="t-sub">11/26 files &bull; 38.2 GB / 81.4 GB</div>
+        </div>
+        <div class="prog-bg"><div class="prog-fill" id="t-bar" style="width:47%"></div></div>
+        <div class="prog-meta">
+          <span class="speed" id="t-speed">~218.4 MB/s</span>
+          <span class="eta" id="t-eta">ETA: 3m 12s remaining</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-grid" style="margin-top:12px">
+      <div class="card">
+        <div class="card-label">Current File</div>
+        <div id="t-curfile" style="font-size:13px;font-family:monospace;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0043.MP4</div>
+        <div class="file-prog" style="margin-top:6px"><div class="file-prog-bar" id="t-fileprog" style="width:63%"></div></div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:monospace">2.8 GB / 4.5 GB</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Destination</div>
+        <div class="path-display" id="t-dest">//100.109.23.38/archive/wedding-shoot</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Started 2m 48s ago</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="card-label">Queue</div>
+      <div id="t-queue" style="max-height:240px;overflow:auto">
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C001_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">8.0 GB</span></div>
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C002_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">7.0 GB</span></div>
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C003_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">9.0 GB</span></div>
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C004_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">6.0 GB</span></div>
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C005_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">11.0 GB</span></div>
+        <div class="queue-item queue-cur"><span style="width:14px;text-align:center;font-size:9px">&#x25B6;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0043.MP4</span><span style="font-size:9px;color:var(--text3)">4.5 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0044.MP4</span><span style="font-size:9px;color:var(--text3)">2.0 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">GH011234.MP4</span><span style="font-size:9px;color:var(--text3)">6.0 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">GH011235.MP4</span><span style="font-size:9px;color:var(--text3)">8.0 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">behind_scenes_01.mov</span><span style="font-size:9px;color:var(--text3)">1.0 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">IMG_4521.jpg</span><span style="font-size:9px;color:var(--text3)">12.0 MB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DSC00142.ARW</span><span style="font-size:9px;color:var(--text3)">50.0 MB</span></div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:12px 0">
+      <button class="btn btn-d" onclick="cancelMockTransfer()" style="padding:10px 28px;font-size:13px">Cancel Transfer</button>
+    </div>
+  </div><!-- /view-transfer -->
+
+  <!-- ═══ COMPLETE VIEW ═══ -->
+  <div id="view-complete" style="display:none">
+    <div class="card" style="text-align:center;border-color:#22c55e30">
+      <div class="complete-icon">&#x2705;</div>
+      <div class="complete-title">Transfer Complete</div>
+      <div class="complete-sub">26 files &bull; 81.4 GB &bull; 0 errors</div>
+      <div class="complete-detail">Duration: 6m 14s &bull; Avg: 218.4 MB/s</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Saved to</div>
+      <div class="path-display">//100.109.23.38/archive/wedding-shoot</div>
+    </div>
+    <button class="btn btn-p" onclick="showView('idle')" style="width:100%;justify-content:center;margin-top:8px">New Transfer</button>
+  </div>
+
+</div><!-- /app -->
+
+<!-- Bottom bar -->
+<div class="bottom-bar" id="bottom-bar">
+  <div style="display:flex;align-items:center">
+    <div class="bottom-info">
+      <span id="sel-info">26 files selected</span>
+      <small id="sel-size">81.4 GB</small>
+      <div class="eta-badge" id="sel-eta"></div>
+    </div>
+    <span class="kbd-hint" style="margin-left:16px"><kbd>Space</kbd> toggle &nbsp; <kbd>Ctrl</kbd>+<kbd>A</kbd> all &nbsp; <kbd>Enter</kbd> transfer</span>
+  </div>
+  <button class="btn btn-p" id="xfer-btn" onclick="showConfirm()">Transfer &#x2192;</button>
+</div>
+
+<!-- Keyboard Shortcuts Overlay (Phase 2) -->
+<div class="shortcuts-overlay" id="shortcuts-overlay" onclick="if(event.target===this)toggleShortcuts()">
+  <div class="shortcuts-panel">
+    <div class="shortcuts-title">
+      <span>Keyboard Shortcuts</span>
+      <button class="btn-icon" onclick="toggleShortcuts()" style="width:32px;height:32px;font-size:14px">&#x2715;</button>
+    </div>
+    <div class="shortcut-row"><span class="shortcut-label">Toggle file selection</span><div class="shortcut-keys"><kbd>Space</kbd></div></div>
+    <div class="shortcut-row"><span class="shortcut-label">Navigate files</span><div class="shortcut-keys"><kbd>&#x2191;</kbd> <kbd>&#x2193;</kbd></div></div>
+    <div class="shortcut-row"><span class="shortcut-label">Select all</span><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>A</kbd></div></div>
+    <div class="shortcut-row"><span class="shortcut-label">Deselect all</span><div class="shortcut-keys"><kbd>Ctrl</kbd><kbd>D</kbd></div></div>
+    <div class="shortcut-row"><span class="shortcut-label">Search files</span><div class="shortcut-keys"><kbd>/</kbd></div></div>
+    <div class="shortcut-row"><span class="shortcut-label">Start transfer</span><div class="shortcut-keys"><kbd>Enter</kbd></div></div>
+    <div class="shortcut-row"><span class="shortcut-label">Open settings</span><div class="shortcut-keys"><kbd>,</kbd></div></div>
+    <div class="shortcut-row"><span class="shortcut-label">Show shortcuts</span><div class="shortcut-keys"><kbd>?</kbd></div></div>
+  </div>
+</div>
+
+<!-- Settings Overlay -->
+<div class="overlay" id="settings-overlay" onclick="if(event.target===this)toggleSettings()">
+  <div class="settings-panel" onclick="event.stopPropagation()">
+    <div class="settings-handle"></div>
+    <div class="settings-title">Settings</div>
+    <div class="toggle-row"><span>Use Tailscale IP</span><label class="toggle"><input type="checkbox" checked><span class="sl"></span></label></div>
+    <div class="field"><label>Tailscale IP</label><input type="text" value="100.109.23.38" /></div>
+    <div class="field"><label>Local IP</label><input type="text" value="192.168.88.20" /></div>
+    <div class="field"><label>Share Name</label><input type="text" value="archive" /></div>
+    <div class="field"><label>SMB Version</label><select><option>3.0</option><option>2.1</option><option>2.0</option><option>1.0</option></select></div>
+    <div class="field-row">
+      <div class="field"><label>Username (blank=guest)</label><input type="text" placeholder="guest"/></div>
+      <div class="field"><label>Password</label><input type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;"/></div>
+    </div>
+    <div style="border-top:1px solid var(--border2);margin:12px 0;padding-top:12px">
+      <div class="card-label" style="margin-bottom:8px">Discord Notifications</div>
+      <div class="field"><label>Webhook URL</label><input type="text" placeholder="https://discord.com/api/webhooks/..." /></div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Sends alerts at 25%, 50%, 75%, 100% with ETA and transfer stats</div>
+    </div>
+    <div class="toggle-row"><span>Verify checksums (slower)</span><label class="toggle"><input type="checkbox"><span class="sl"></span></label></div>
+
+    <div style="border-top:1px solid var(--border2);margin:12px 0;padding-top:12px">
+      <div class="card-label" style="margin-bottom:8px">Speed Test</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">
+        Write a test file to NAS to measure transfer speed. Result is used for ETA estimates.
+      </div>
+      <div class="speedtest-box" id="speedtest-box">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <button class="btn btn-sm btn-s" id="speedtest-btn" onclick="runSpeedTest()">Run Speed Test</button>
+          <span id="speedtest-status" style="font-size:10px;color:var(--text3)"></span>
+        </div>
+        <div class="speedtest-bar" id="speedtest-bar-wrap" style="display:none">
+          <div class="speedtest-bar-fill" id="speedtest-bar"></div>
+        </div>
+        <div class="speedtest-result" id="speedtest-result" style="display:none">
+          <div>
+            <div class="speedtest-value" id="speedtest-value">--</div>
+            <div class="speedtest-label">MB/s write speed</div>
+          </div>
+          <div style="flex:1;text-align:right">
+            <div style="font-size:11px;color:var(--text2)" id="speedtest-detail"></div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px" id="speedtest-time"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-p" onclick="toggleSettings()" style="flex:1">Save</button>
+      <button class="btn btn-s" onclick="toggleSettings()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Transfer Overlay -->
+<div class="confirm-overlay" id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-panel">
+    <div class="confirm-title">Confirm Transfer</div>
+    <div class="confirm-summary">
+      <div class="confirm-row">
+        <span class="label">Files</span>
+        <span class="value" id="confirm-files">--</span>
+      </div>
+      <div class="confirm-row">
+        <span class="label">Total size</span>
+        <span class="value" id="confirm-size">--</span>
+      </div>
+      <div class="confirm-row">
+        <span class="label">Estimated time</span>
+        <span class="value" id="confirm-eta">--</span>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:6px;letter-spacing:0.3px;font-weight:600;text-transform:uppercase">Destination</div>
+    <div class="confirm-dest" id="confirm-dest">//100.109.23.38/archive/wedding-shoot</div>
+    <div class="confirm-eta" id="confirm-eta-note"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-p" onclick="confirmTransfer()" style="flex:1">Start Transfer</button>
+      <button class="btn btn-s" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Mock data ──
+const MOCK_FILES = [
+  // BRAW (Blackmagic RAW cinema camera)
+  { name: "A001_C001_01141Y.braw", size: 8589934592, size_human: "8.0 GB", date: "2026-02-14 10:23" },
+  { name: "A001_C002_01141Y.braw", size: 7516192768, size_human: "7.0 GB", date: "2026-02-14 10:31" },
+  { name: "A001_C003_01141Y.braw", size: 9663676416, size_human: "9.0 GB", date: "2026-02-14 10:45" },
+  { name: "A001_C004_01141Y.braw", size: 6442450944, size_human: "6.0 GB", date: "2026-02-14 11:02" },
+  { name: "A001_C005_01141Y.braw", size: 11811160064, size_human: "11.0 GB", date: "2026-02-14 11:15" },
+  { name: "B002_C001_02141Y.braw", size: 5368709120, size_human: "5.0 GB", date: "2026-02-14 13:00" },
+  // MP4
+  { name: "DJI_0042.MP4", size: 3221225472, size_human: "3.0 GB", date: "2026-02-14 14:00" },
+  { name: "DJI_0043.MP4", size: 4831838208, size_human: "4.5 GB", date: "2026-02-14 14:10" },
+  { name: "DJI_0044.MP4", size: 2147483648, size_human: "2.0 GB", date: "2026-02-14 14:22" },
+  { name: "GH011234.MP4", size: 6442450944, size_human: "6.0 GB", date: "2026-02-14 15:00" },
+  { name: "GH011235.MP4", size: 8589934592, size_human: "8.0 GB", date: "2026-02-14 15:18" },
+  // MOV
+  { name: "behind_scenes_01.mov", size: 1073741824, size_human: "1.0 GB", date: "2026-02-14 16:00" },
+  { name: "behind_scenes_02.mov", size: 1610612736, size_human: "1.5 GB", date: "2026-02-14 16:15" },
+  { name: "interview_A_cam.mov", size: 12884901888, size_human: "12.0 GB", date: "2026-02-14 12:00" },
+  // JPG / JPEG
+  { name: "IMG_4521.jpg", size: 12582912, size_human: "12.0 MB", date: "2026-02-14 11:30" },
+  { name: "IMG_4522.jpg", size: 11534336, size_human: "11.0 MB", date: "2026-02-14 11:31" },
+  { name: "IMG_4523.jpeg", size: 13631488, size_human: "13.0 MB", date: "2026-02-14 11:31" },
+  { name: "IMG_4524.jpeg", size: 10485760, size_human: "10.0 MB", date: "2026-02-14 11:32" },
+  { name: "BTS_poster_01.jpg", size: 8388608, size_human: "8.0 MB", date: "2026-02-14 16:30" },
+  // ARW (Sony RAW)
+  { name: "DSC00142.ARW", size: 52428800, size_human: "50.0 MB", date: "2026-02-14 11:30" },
+  { name: "DSC00143.ARW", size: 53477376, size_human: "51.0 MB", date: "2026-02-14 11:31" },
+  { name: "DSC00144.ARW", size: 51380224, size_human: "49.0 MB", date: "2026-02-14 11:33" },
+  { name: "DSC00145.ARW", size: 54525952, size_human: "52.0 MB", date: "2026-02-14 11:34" },
+  // MP3
+  { name: "voice_memo_001.mp3", size: 15728640, size_human: "15.0 MB", date: "2026-02-14 10:20" },
+  { name: "voice_memo_002.mp3", size: 10485760, size_human: "10.0 MB", date: "2026-02-14 13:00" },
+  { name: "ambient_room_tone.mp3", size: 5242880, size_human: "5.0 MB", date: "2026-02-14 09:45" },
+];
+
+let files = [...MOCK_FILES];
+let selected = new Set();
+let focusIdx = -1;
+let currentFilter = 'all';
+let speedTestResult = null; // bytes per second, null = not tested
+
+// ── File type helpers ──
+function getExt(n) { const p = n.split('.'); return p.length > 1 ? p.pop().toUpperCase() : ''; }
+
+// BRAW is Blackmagic cinema camera footage — it's video, not image
+const VIDEO_EXT = new Set(['BRAW','MP4','MOV','MXF','AVI','MKV','WEBM']);
+const IMAGE_EXT = new Set(['JPG','JPEG','PNG','TIFF','TIF','ARW','CR3','DNG','NEF','RAF']);
+const AUDIO_EXT = new Set(['MP3','WAV','FLAC','AAC','AIFF']);
+
+function isVideo(ext) { return VIDEO_EXT.has(ext); }
+function isImage(ext) { return IMAGE_EXT.has(ext); }
+function isAudio(ext) { return AUDIO_EXT.has(ext); }
+
+function extStyle(ext) {
+  const m = {
+    BRAW:['#c4b5fd','#c4b5fd18'], MP4:['#67e8f9','#67e8f918'], MOV:['#67e8f9','#67e8f918'],
+    MXF:['#f472b6','#f472b618'],
+    JPG:['#f97316','#f9731618'], JPEG:['#f97316','#f9731618'],
+    ARW:['#6ee7b7','#6ee7b718'], DNG:['#6ee7b7','#6ee7b718'],
+    MP3:['#fbbf24','#fbbf2418'], WAV:['#fbbf24','#fbbf2418'],
+  };
+  return m[ext] || ['#94a3b8','#94a3b818'];
+}
+function escH(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+function humanSize(b) {
+  const u = ['B','KB','MB','GB','TB']; let i = 0;
+  while (b >= 1024 && i < u.length-1) { b /= 1024; i++; }
+  return b.toFixed(1) + ' ' + u[i];
+}
+
+// ── Rendering ──
+function getVisibleFiles() {
+  let result = [...files];
+  // Filter
+  const query = document.getElementById('search-input').value.toLowerCase();
+  if (query) result = result.filter(f => f.name.toLowerCase().includes(query));
+  if (currentFilter === 'video') result = result.filter(f => isVideo(getExt(f.name)));
+  else if (currentFilter === 'image') result = result.filter(f => isImage(getExt(f.name)));
+  else if (currentFilter === 'audio') result = result.filter(f => isAudio(getExt(f.name)));
+  else if (currentFilter === 'large') result = result.filter(f => f.size >= 1073741824);
+  // Sort
+  const sort = document.getElementById('sort-select').value;
+  if (sort === 'name') result.sort((a,b) => a.name.localeCompare(b.name));
+  else if (sort === 'size-desc') result.sort((a,b) => b.size - a.size);
+  else if (sort === 'size-asc') result.sort((a,b) => a.size - b.size);
+  else if (sort === 'type') result.sort((a,b) => getExt(a.name).localeCompare(getExt(b.name)));
+  else if (sort === 'date') result.sort((a,b) => b.date.localeCompare(a.date));
+  return result;
+}
+
+function renderFiles() {
+  const list = document.getElementById('file-list');
+  const visible = getVisibleFiles();
+
+  // Keep table header
+  let html = `<div class="file-table-head">
+    <span></span>
+    <span>Name</span>
+    <span>Size</span>
+    <span>Type</span>
+    <span>Modified</span>
+  </div>`;
+
+  html += visible.map((f, i) => {
+    const ext = getExt(f.name);
+    const [fg, bg] = extStyle(ext);
+    const on = selected.has(f.name);
+    const focused = i === focusIdx ? 'active' : '';
+    return `<div class="file-item ${focused}" onclick="toggleFile('${f.name}')" data-idx="${i}">
+      <div class="chk ${on?'on':''}">&#x2713;</div>
+      <div class="file-name">${escH(f.name)}</div>
+      <span class="file-size">${f.size_human}</span>
+      ${ext?`<span class="file-ext" style="color:${fg};background:${bg}">${ext}</span>`:''}
+      <span class="file-date">${f.date || ''}</span>
+    </div>`;
+  }).join('');
+
+  list.innerHTML = html;
+
+  // Update counts
+  const totalSize = files.reduce((a,f) => a+f.size, 0);
+  document.getElementById('file-count').textContent = `${visible.length} files \u2022 ${humanSize(totalSize)}`;
+  updateSel();
+}
+
+function toggleFile(name) {
+  selected.has(name) ? selected.delete(name) : selected.add(name);
+  renderFiles();
+}
+
+function selectAll() { files.forEach(f => selected.add(f.name)); renderFiles(); }
+function selectNone() { selected.clear(); renderFiles(); }
+function selectByType(type) {
+  // Clear first, then select only matching files
+  selected.clear();
+  files.forEach(f => {
+    const ext = getExt(f.name);
+    if (type === 'video' && isVideo(ext)) selected.add(f.name);
+    else if (type === 'image' && isImage(ext)) selected.add(f.name);
+    else if (type === 'audio' && isAudio(ext)) selected.add(f.name);
+  });
+  renderFiles();
+}
+
+function getSelectedBytes() {
+  return files.filter(f => selected.has(f.name)).reduce((a,f) => a+f.size, 0);
+}
+
+function formatDuration(seconds) {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) { const m = Math.floor(seconds/60); const s = Math.round(seconds%60); return `${m}m ${s}s`; }
+  const h = Math.floor(seconds/3600); const m = Math.floor((seconds%3600)/60); return `${h}h ${m}m`;
+}
+
+function getEtaText(bytes) {
+  if (!speedTestResult) return null;
+  const seconds = bytes / speedTestResult;
+  return formatDuration(seconds);
+}
+
+function updateSel() {
+  const c = selected.size;
+  const bytes = getSelectedBytes();
+  document.getElementById('sel-info').textContent = c > 0 ? `${c} file${c>1?'s':''} selected` : 'No files selected';
+  document.getElementById('sel-size').textContent = c > 0 ? humanSize(bytes) : '';
+
+  // ETA in bottom bar
+  const etaEl = document.getElementById('sel-eta');
+  if (c > 0 && speedTestResult) {
+    etaEl.innerHTML = `Est. <span class="eta-val">${getEtaText(bytes)}</span>`;
+  } else if (c > 0) {
+    etaEl.textContent = 'ETA: run speed test in settings';
+  } else {
+    etaEl.textContent = '';
+  }
+}
+
+function setFilter(btn, type) {
+  // Clear selection, then select only files matching the new filter
+  selected.clear();
+  currentFilter = type;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  btn.classList.add('active');
+
+  if (type === 'all') {
+    // "All" filter: select everything
+    files.forEach(f => selected.add(f.name));
+  } else {
+    files.forEach(f => {
+      const ext = getExt(f.name);
+      if (type === 'video' && isVideo(ext)) selected.add(f.name);
+      else if (type === 'image' && isImage(ext)) selected.add(f.name);
+      else if (type === 'audio' && isAudio(ext)) selected.add(f.name);
+      else if (type === 'large' && f.size >= 1073741824) selected.add(f.name);
+    });
+  }
+  renderFiles();
+}
+
+function filterFiles() { renderFiles(); }
+function sortFiles() { renderFiles(); }
+
+// ── Overlays ──
+function toggleSettings() {
+  document.getElementById('settings-overlay').classList.toggle('open');
+}
+function toggleShortcuts() {
+  document.getElementById('shortcuts-overlay').classList.toggle('open');
+}
+
+// ── Keyboard shortcuts (Phase 2) ──
+document.addEventListener('keydown', (e) => {
+  // Don't trigger when typing in inputs
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
+    if (e.key === 'Escape') e.target.blur();
+    return;
+  }
+
+  const visible = getVisibleFiles();
+
+  if (e.key === '?') {
+    e.preventDefault();
+    toggleShortcuts();
+  }
+  else if (e.key === ',') {
+    e.preventDefault();
+    toggleSettings();
+  }
+  else if (e.key === '/') {
+    e.preventDefault();
+    document.getElementById('search-input').focus();
+  }
+  else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    focusIdx = Math.min(focusIdx + 1, visible.length - 1);
+    renderFiles();
+    scrollToFocused();
+  }
+  else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    focusIdx = Math.max(focusIdx - 1, 0);
+    renderFiles();
+    scrollToFocused();
+  }
+  else if (e.key === ' ' && focusIdx >= 0 && focusIdx < visible.length) {
+    e.preventDefault();
+    toggleFile(visible[focusIdx].name);
+  }
+  else if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    selectAll();
+  }
+  else if (e.key === 'd' && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    selectNone();
+  }
+  else if (e.key === 'Enter') {
+    e.preventDefault();
+    const co = document.getElementById('confirm-overlay');
+    if (co.classList.contains('open')) { confirmTransfer(); }
+    else { showConfirm(); }
+  }
+  else if (e.key === 'Escape') {
+    const co = document.getElementById('confirm-overlay');
+    const sc = document.getElementById('shortcuts-overlay');
+    const st = document.getElementById('settings-overlay');
+    if (co.classList.contains('open')) { closeConfirm(); }
+    else if (sc.classList.contains('open')) { sc.classList.remove('open'); }
+    else if (st.classList.contains('open')) { st.classList.remove('open'); }
+    else if (document.getElementById('view-transfer').style.display !== 'none') { cancelMockTransfer(); }
+  }
+});
+
+function scrollToFocused() {
+  const items = document.querySelectorAll('.file-item');
+  if (items[focusIdx]) items[focusIdx].scrollIntoView({ block: 'nearest' });
+}
+
+function toast(msg, ok) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (ok ? ' ok' : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+// ── View switching ──
+function showView(v) {
+  document.getElementById('view-idle').style.display = v === 'idle' ? '' : 'none';
+  document.getElementById('view-transfer').style.display = v === 'transfer' ? '' : 'none';
+  document.getElementById('view-complete').style.display = v === 'complete' ? '' : 'none';
+  document.getElementById('bottom-bar').style.display = v === 'idle' ? '' : 'none';
+}
+
+// ── Confirm overlay ──
+function showConfirm() {
+  if (selected.size === 0) { toast('No files selected'); return; }
+  const bytes = getSelectedBytes();
+  document.getElementById('confirm-files').textContent = `${selected.size} file${selected.size>1?'s':''}`;
+  document.getElementById('confirm-size').textContent = humanSize(bytes);
+  document.getElementById('confirm-dest').textContent = '//100.109.23.38/archive/wedding-shoot';
+
+  if (speedTestResult) {
+    document.getElementById('confirm-eta').textContent = getEtaText(bytes);
+    document.getElementById('confirm-eta-note').innerHTML = `Based on speed test: <span class="eta-value">${humanSize(speedTestResult)}/s</span>`;
+  } else {
+    document.getElementById('confirm-eta').textContent = 'N/A';
+    document.getElementById('confirm-eta-note').textContent = 'Run a speed test in Settings for time estimates';
+  }
+
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+}
+
+function confirmTransfer() {
+  closeConfirm();
+  showView('transfer');
+  toast('Transfer started (preview demo)', true);
+}
+
+function cancelMockTransfer() {
+  showView('idle');
+  toast('Transfer cancelled (preview demo)');
+}
+
+// ── Speed test (mock) ──
+let speedTestRunning = false;
+function runSpeedTest() {
+  if (speedTestRunning) return;
+  speedTestRunning = true;
+
+  const btn = document.getElementById('speedtest-btn');
+  const status = document.getElementById('speedtest-status');
+  const barWrap = document.getElementById('speedtest-bar-wrap');
+  const bar = document.getElementById('speedtest-bar');
+  const result = document.getElementById('speedtest-result');
+
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  status.textContent = 'Writing 256 MB test file...';
+  status.className = 'speedtest-running';
+  status.style.cssText = 'font-size:10px;color:var(--orange)';
+  barWrap.style.display = '';
+  bar.style.width = '0%';
+  result.style.display = 'none';
+
+  // Simulate progress over ~3 seconds
+  let progress = 0;
+  const steps = 30;
+  const interval = setInterval(() => {
+    progress += (100 / steps) * (0.7 + Math.random() * 0.6);
+    if (progress > 100) progress = 100;
+    bar.style.width = progress + '%';
+
+    if (progress >= 100) {
+      clearInterval(interval);
+      finishSpeedTest();
+    }
+  }, 100);
+}
+
+function finishSpeedTest() {
+  // Simulate a realistic Pi 4 USB 3.0 → SMB result (150-250 MB/s)
+  const mbps = 180 + Math.random() * 60;
+  speedTestResult = mbps * 1024 * 1024; // store as bytes/sec
+
+  const btn = document.getElementById('speedtest-btn');
+  const status = document.getElementById('speedtest-status');
+  const bar = document.getElementById('speedtest-bar');
+  const result = document.getElementById('speedtest-result');
+  const value = document.getElementById('speedtest-value');
+  const detail = document.getElementById('speedtest-detail');
+  const timeEl = document.getElementById('speedtest-time');
+
+  bar.style.width = '100%';
+  status.textContent = 'Complete';
+  status.className = '';
+  status.style.cssText = 'font-size:10px;color:var(--green)';
+  btn.disabled = false;
+  btn.textContent = 'Run Again';
+  speedTestRunning = false;
+
+  value.textContent = mbps.toFixed(1);
+  detail.textContent = `${humanSize(speedTestResult)}/s`;
+  const now = new Date();
+  timeEl.textContent = `Tested ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+  result.style.display = 'flex';
+
+  // Update bottom bar ETA
+  updateSel();
+  toast(`Speed test: ${mbps.toFixed(1)} MB/s`, true);
+}
+
+// ── Init with all files pre-selected ──
+files.forEach(f => selected.add(f.name));
+renderFiles();
+</script>
+</body>
+</html>
