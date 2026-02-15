@@ -421,6 +421,76 @@
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 
+  /* ── SPEED TEST ── */
+  .speedtest-box {
+    background: var(--bg); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 12px; margin-top: 8px;
+  }
+  .speedtest-result {
+    display: flex; align-items: center; gap: 10px; margin-top: 8px;
+  }
+  .speedtest-value {
+    font-size: 22px; font-weight: 800; font-family: monospace; color: var(--accent-light);
+  }
+  .speedtest-label { font-size: 10px; color: var(--text3); }
+  .speedtest-bar {
+    width: 100%; height: 4px; background: var(--surface2); border-radius: 2px;
+    overflow: hidden; margin-top: 8px;
+  }
+  .speedtest-bar-fill {
+    height: 100%; width: 0%; border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+    transition: width .15s linear;
+  }
+  @keyframes speedtest-pulse {
+    0% { opacity: .6; } 50% { opacity: 1; } 100% { opacity: .6; }
+  }
+  .speedtest-running { animation: speedtest-pulse 1s infinite; }
+
+  /* ── CONFIRM OVERLAY ── */
+  .confirm-overlay {
+    display: none; position: fixed; inset: 0; background: #00000080; z-index: 180;
+    align-items: center; justify-content: center;
+  }
+  .confirm-overlay.open { display: flex; }
+  .confirm-panel {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: 16px;
+    padding: 24px 28px; max-width: 480px; width: 90%;
+  }
+  .confirm-title {
+    font-size: 18px; font-weight: 700; margin-bottom: 16px;
+  }
+  .confirm-summary {
+    background: var(--bg); border: 1px solid var(--border2); border-radius: 8px;
+    padding: 14px; margin-bottom: 16px;
+  }
+  .confirm-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0; font-size: 13px;
+  }
+  .confirm-row .label { color: var(--text3); }
+  .confirm-row .value { color: var(--text); font-family: monospace; font-weight: 600; }
+  .confirm-dest {
+    font-family: monospace; font-size: 12px; color: var(--accent2);
+    padding: 8px 10px; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: 6px; margin-bottom: 16px; word-break: break-all;
+  }
+  .confirm-eta {
+    font-size: 11px; color: var(--text3); text-align: center; margin-bottom: 16px;
+    font-family: monospace;
+  }
+  .confirm-eta .eta-value { color: var(--accent-light); font-weight: 600; }
+  .confirm-btns {
+    display: flex; gap: 8px;
+  }
+
+  /* ── ETA BADGE in bottom bar ── */
+  .eta-badge {
+    font-size: 10px; color: var(--text3); font-family: monospace;
+    margin-top: 1px;
+  }
+  .eta-badge .eta-val { color: var(--accent2); font-weight: 600; }
+
   /* ── PREVIEW BADGE ── */
   .preview-badge {
     position: fixed; top: 12px; right: 12px; z-index: 300;
@@ -689,10 +759,11 @@
     <div class="bottom-info">
       <span id="sel-info">26 files selected</span>
       <small id="sel-size">81.4 GB</small>
+      <div class="eta-badge" id="sel-eta"></div>
     </div>
     <span class="kbd-hint" style="margin-left:16px"><kbd>Space</kbd> toggle &nbsp; <kbd>Ctrl</kbd>+<kbd>A</kbd> all &nbsp; <kbd>Enter</kbd> transfer</span>
   </div>
-  <button class="btn btn-p" id="xfer-btn" onclick="startMockTransfer()">Transfer &#x2192;</button>
+  <button class="btn btn-p" id="xfer-btn" onclick="showConfirm()">Transfer &#x2192;</button>
 </div>
 
 <!-- Keyboard Shortcuts Overlay (Phase 2) -->
@@ -733,9 +804,64 @@
       <div style="font-size:10px;color:var(--text3);margin-bottom:4px">Sends alerts at 25%, 50%, 75%, 100% with ETA and transfer stats</div>
     </div>
     <div class="toggle-row"><span>Verify checksums (slower)</span><label class="toggle"><input type="checkbox"><span class="sl"></span></label></div>
+
+    <div style="border-top:1px solid var(--border2);margin:12px 0;padding-top:12px">
+      <div class="card-label" style="margin-bottom:8px">Speed Test</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px">
+        Write a test file to NAS to measure transfer speed. Result is used for ETA estimates.
+      </div>
+      <div class="speedtest-box" id="speedtest-box">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <button class="btn btn-sm btn-s" id="speedtest-btn" onclick="runSpeedTest()">Run Speed Test</button>
+          <span id="speedtest-status" style="font-size:10px;color:var(--text3)"></span>
+        </div>
+        <div class="speedtest-bar" id="speedtest-bar-wrap" style="display:none">
+          <div class="speedtest-bar-fill" id="speedtest-bar"></div>
+        </div>
+        <div class="speedtest-result" id="speedtest-result" style="display:none">
+          <div>
+            <div class="speedtest-value" id="speedtest-value">--</div>
+            <div class="speedtest-label">MB/s write speed</div>
+          </div>
+          <div style="flex:1;text-align:right">
+            <div style="font-size:11px;color:var(--text2)" id="speedtest-detail"></div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px" id="speedtest-time"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="btn-row" style="margin-top:16px">
       <button class="btn btn-p" onclick="toggleSettings()" style="flex:1">Save</button>
       <button class="btn btn-s" onclick="toggleSettings()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Transfer Overlay -->
+<div class="confirm-overlay" id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
+  <div class="confirm-panel">
+    <div class="confirm-title">Confirm Transfer</div>
+    <div class="confirm-summary">
+      <div class="confirm-row">
+        <span class="label">Files</span>
+        <span class="value" id="confirm-files">--</span>
+      </div>
+      <div class="confirm-row">
+        <span class="label">Total size</span>
+        <span class="value" id="confirm-size">--</span>
+      </div>
+      <div class="confirm-row">
+        <span class="label">Estimated time</span>
+        <span class="value" id="confirm-eta">--</span>
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:6px;letter-spacing:0.3px;font-weight:600;text-transform:uppercase">Destination</div>
+    <div class="confirm-dest" id="confirm-dest">//100.109.23.38/archive/wedding-shoot</div>
+    <div class="confirm-eta" id="confirm-eta-note"></div>
+    <div class="confirm-btns">
+      <button class="btn btn-p" onclick="confirmTransfer()" style="flex:1">Start Transfer</button>
+      <button class="btn btn-s" onclick="closeConfirm()">Cancel</button>
     </div>
   </div>
 </div>
@@ -783,6 +909,7 @@ let files = [...MOCK_FILES];
 let selected = new Set();
 let focusIdx = -1;
 let currentFilter = 'all';
+let speedTestResult = null; // bytes per second, null = not tested
 
 // ── File type helpers ──
 function getExt(n) { const p = n.split('.'); return p.length > 1 ? p.pop().toUpperCase() : ''; }
@@ -887,11 +1014,37 @@ function selectByType(type) {
   renderFiles();
 }
 
+function getSelectedBytes() {
+  return files.filter(f => selected.has(f.name)).reduce((a,f) => a+f.size, 0);
+}
+
+function formatDuration(seconds) {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) { const m = Math.floor(seconds/60); const s = Math.round(seconds%60); return `${m}m ${s}s`; }
+  const h = Math.floor(seconds/3600); const m = Math.floor((seconds%3600)/60); return `${h}h ${m}m`;
+}
+
+function getEtaText(bytes) {
+  if (!speedTestResult) return null;
+  const seconds = bytes / speedTestResult;
+  return formatDuration(seconds);
+}
+
 function updateSel() {
   const c = selected.size;
-  const bytes = files.filter(f => selected.has(f.name)).reduce((a,f) => a+f.size, 0);
+  const bytes = getSelectedBytes();
   document.getElementById('sel-info').textContent = c > 0 ? `${c} file${c>1?'s':''} selected` : 'No files selected';
   document.getElementById('sel-size').textContent = c > 0 ? humanSize(bytes) : '';
+
+  // ETA in bottom bar
+  const etaEl = document.getElementById('sel-eta');
+  if (c > 0 && speedTestResult) {
+    etaEl.innerHTML = `Est. <span class="eta-val">${getEtaText(bytes)}</span>`;
+  } else if (c > 0) {
+    etaEl.textContent = 'ETA: run speed test in settings';
+  } else {
+    etaEl.textContent = '';
+  }
 }
 
 function setFilter(btn, type) {
@@ -975,13 +1128,16 @@ document.addEventListener('keydown', (e) => {
   }
   else if (e.key === 'Enter') {
     e.preventDefault();
-    startMockTransfer();
+    const co = document.getElementById('confirm-overlay');
+    if (co.classList.contains('open')) { confirmTransfer(); }
+    else { showConfirm(); }
   }
   else if (e.key === 'Escape') {
-    // Close overlays first, then cancel transfer if in transfer view
+    const co = document.getElementById('confirm-overlay');
     const sc = document.getElementById('shortcuts-overlay');
     const st = document.getElementById('settings-overlay');
-    if (sc.classList.contains('open')) { sc.classList.remove('open'); }
+    if (co.classList.contains('open')) { closeConfirm(); }
+    else if (sc.classList.contains('open')) { sc.classList.remove('open'); }
     else if (st.classList.contains('open')) { st.classList.remove('open'); }
     else if (document.getElementById('view-transfer').style.display !== 'none') { cancelMockTransfer(); }
   }
@@ -1007,8 +1163,31 @@ function showView(v) {
   document.getElementById('bottom-bar').style.display = v === 'idle' ? '' : 'none';
 }
 
-function startMockTransfer() {
+// ── Confirm overlay ──
+function showConfirm() {
   if (selected.size === 0) { toast('No files selected'); return; }
+  const bytes = getSelectedBytes();
+  document.getElementById('confirm-files').textContent = `${selected.size} file${selected.size>1?'s':''}`;
+  document.getElementById('confirm-size').textContent = humanSize(bytes);
+  document.getElementById('confirm-dest').textContent = '//100.109.23.38/archive/wedding-shoot';
+
+  if (speedTestResult) {
+    document.getElementById('confirm-eta').textContent = getEtaText(bytes);
+    document.getElementById('confirm-eta-note').innerHTML = `Based on speed test: <span class="eta-value">${humanSize(speedTestResult)}/s</span>`;
+  } else {
+    document.getElementById('confirm-eta').textContent = 'N/A';
+    document.getElementById('confirm-eta-note').textContent = 'Run a speed test in Settings for time estimates';
+  }
+
+  document.getElementById('confirm-overlay').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('open');
+}
+
+function confirmTransfer() {
+  closeConfirm();
   showView('transfer');
   toast('Transfer started (preview demo)', true);
 }
@@ -1016,6 +1195,74 @@ function startMockTransfer() {
 function cancelMockTransfer() {
   showView('idle');
   toast('Transfer cancelled (preview demo)');
+}
+
+// ── Speed test (mock) ──
+let speedTestRunning = false;
+function runSpeedTest() {
+  if (speedTestRunning) return;
+  speedTestRunning = true;
+
+  const btn = document.getElementById('speedtest-btn');
+  const status = document.getElementById('speedtest-status');
+  const barWrap = document.getElementById('speedtest-bar-wrap');
+  const bar = document.getElementById('speedtest-bar');
+  const result = document.getElementById('speedtest-result');
+
+  btn.disabled = true;
+  btn.textContent = 'Testing...';
+  status.textContent = 'Writing 256 MB test file...';
+  status.className = 'speedtest-running';
+  status.style.cssText = 'font-size:10px;color:var(--orange)';
+  barWrap.style.display = '';
+  bar.style.width = '0%';
+  result.style.display = 'none';
+
+  // Simulate progress over ~3 seconds
+  let progress = 0;
+  const steps = 30;
+  const interval = setInterval(() => {
+    progress += (100 / steps) * (0.7 + Math.random() * 0.6);
+    if (progress > 100) progress = 100;
+    bar.style.width = progress + '%';
+
+    if (progress >= 100) {
+      clearInterval(interval);
+      finishSpeedTest();
+    }
+  }, 100);
+}
+
+function finishSpeedTest() {
+  // Simulate a realistic Pi 4 USB 3.0 → SMB result (150-250 MB/s)
+  const mbps = 180 + Math.random() * 60;
+  speedTestResult = mbps * 1024 * 1024; // store as bytes/sec
+
+  const btn = document.getElementById('speedtest-btn');
+  const status = document.getElementById('speedtest-status');
+  const bar = document.getElementById('speedtest-bar');
+  const result = document.getElementById('speedtest-result');
+  const value = document.getElementById('speedtest-value');
+  const detail = document.getElementById('speedtest-detail');
+  const timeEl = document.getElementById('speedtest-time');
+
+  bar.style.width = '100%';
+  status.textContent = 'Complete';
+  status.className = '';
+  status.style.cssText = 'font-size:10px;color:var(--green)';
+  btn.disabled = false;
+  btn.textContent = 'Run Again';
+  speedTestRunning = false;
+
+  value.textContent = mbps.toFixed(1);
+  detail.textContent = `${humanSize(speedTestResult)}/s`;
+  const now = new Date();
+  timeEl.textContent = `Tested ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+  result.style.display = 'flex';
+
+  // Update bottom bar ETA
+  updateSel();
+  toast(`Speed test: ${mbps.toFixed(1)} MB/s`, true);
 }
 
 // ── Init with all files pre-selected ──
