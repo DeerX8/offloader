@@ -568,6 +568,11 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/preview")
+def preview():
+    return render_template("preview-desktop.html")
+
+
 @app.route("/api/status")
 def api_status():
     """REST endpoint for quick status check (e.g., from scripts)."""
