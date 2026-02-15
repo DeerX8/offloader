@@ -554,7 +554,7 @@
         <div class="file-header">
           <div class="card-label" style="margin:0">Files on Drive</div>
           <div style="display:flex;gap:6px;align-items:center">
-            <span class="file-count" id="file-count">24 files &bull; 187.3 GB</span>
+            <span class="file-count" id="file-count"></span>
           </div>
         </div>
 
@@ -932,6 +932,7 @@ function renderFiles() {
       <div style="font-size:28px;margin-bottom:8px">${driveConn ? '&#x1F4C2;' : '&#x1F50C;'}</div>
       <div style="font-size:13px">${driveConn ? 'No files found on drive' : 'Connect a USB drive to get started'}</div>
     </div>`;
+    document.getElementById('file-count').textContent = '';
     updateSel();
     return;
   }
