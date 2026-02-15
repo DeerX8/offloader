@@ -5,8 +5,8 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/user/offloader
-ExecStart=/usr/bin/python3 /home/user/offloader/app.py
+WorkingDirectory=/home/pi/offloader
+ExecStart=/usr/bin/python3 /home/pi/offloader/app.py
 Restart=always
 RestartSec=10
 StandardOutput=journal
