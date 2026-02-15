@@ -953,7 +953,7 @@ function renderFiles() {
     const [fg, bg] = extStyle(ext);
     const on = selected.has(f.name);
     const focused = i === focusIdx ? 'active' : '';
-    return `<div class="file-item ${focused}" onclick="toggleFile('${f.name}')" data-idx="${i}">
+    return `<div class="file-item ${focused}" data-name="${escH(f.name)}" data-idx="${i}">
       <div class="chk ${on?'on':''}">&#x2713;</div>
       <div class="file-name">${escH(f.name)}</div>
       <span class="file-size">${f.size_human}</span>
@@ -972,7 +972,15 @@ function renderFiles() {
 
 function toggleFile(name) {
   selected.has(name) ? selected.delete(name) : selected.add(name);
-  renderFiles();
+  // Update just the checkbox instead of full re-render
+  const items = document.querySelectorAll('.file-item');
+  items.forEach(item => {
+    if (item.dataset.name === name) {
+      const chk = item.querySelector('.chk');
+      if (chk) chk.className = selected.has(name) ? 'chk on' : 'chk';
+    }
+  });
+  updateSel();
 }
 
 function selectAll() { files.forEach(f => selected.add(f.name)); renderFiles(); }
@@ -1165,10 +1173,11 @@ function confirmTransfer() {
   startTransfer();
 }
 
-// ── Speed test (mock) ──
+// ── Speed test (real NAS write) ──
 let speedTestRunning = false;
 function runSpeedTest() {
   if (speedTestRunning) return;
+  if (!nasConn) { toast('Connect NAS first'); return; }
   speedTestRunning = true;
 
   const btn = document.getElementById('speedtest-btn');
@@ -1179,58 +1188,14 @@ function runSpeedTest() {
 
   btn.disabled = true;
   btn.textContent = 'Testing...';
-  status.textContent = 'Writing 256 MB test file...';
+  status.textContent = 'Writing 256 MB to NAS...';
   status.className = 'speedtest-running';
   status.style.cssText = 'font-size:10px;color:var(--orange)';
   barWrap.style.display = '';
   bar.style.width = '0%';
   result.style.display = 'none';
 
-  // Simulate progress over ~3 seconds
-  let progress = 0;
-  const steps = 30;
-  const interval = setInterval(() => {
-    progress += (100 / steps) * (0.7 + Math.random() * 0.6);
-    if (progress > 100) progress = 100;
-    bar.style.width = progress + '%';
-
-    if (progress >= 100) {
-      clearInterval(interval);
-      finishSpeedTest();
-    }
-  }, 100);
-}
-
-function finishSpeedTest() {
-  // Simulate a realistic Pi 4 USB 3.0 → SMB result (150-250 MB/s)
-  const mbps = 180 + Math.random() * 60;
-  speedTestResult = mbps * 1024 * 1024; // store as bytes/sec
-
-  const btn = document.getElementById('speedtest-btn');
-  const status = document.getElementById('speedtest-status');
-  const bar = document.getElementById('speedtest-bar');
-  const result = document.getElementById('speedtest-result');
-  const value = document.getElementById('speedtest-value');
-  const detail = document.getElementById('speedtest-detail');
-  const timeEl = document.getElementById('speedtest-time');
-
-  bar.style.width = '100%';
-  status.textContent = 'Complete';
-  status.className = '';
-  status.style.cssText = 'font-size:10px;color:var(--green)';
-  btn.disabled = false;
-  btn.textContent = 'Run Again';
-  speedTestRunning = false;
-
-  value.textContent = mbps.toFixed(1);
-  detail.textContent = `${humanSize(speedTestResult)}/s`;
-  const now = new Date();
-  timeEl.textContent = `Tested ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
-  result.style.display = 'flex';
-
-  // Update bottom bar ETA
-  updateSel();
-  toast(`Speed test: ${mbps.toFixed(1)} MB/s`, true);
+  socket.emit('speed_test');
 }
 
 // ── Socket.io initialization and event handlers ──
@@ -1288,6 +1253,44 @@ function init() {
   socket.on('file_error', (d) => toast(d.name + ': ' + d.error));
   socket.on('transfer_complete', (d) => { transferActive = false; transferFinished = true; showComplete(d, []); });
   socket.on('transfer_cancelled', () => { transferActive = false; showView('idle'); renderFiles(); toast('Transfer cancelled'); });
+
+  // Speed test events
+  socket.on('speed_test_progress', (d) => {
+    document.getElementById('speedtest-bar').style.width = Math.round(d.percent) + '%';
+  });
+  socket.on('speed_test_done', (d) => {
+    speedTestResult = d.bytes_per_sec;
+    const mbps = d.mbps;
+    const btn = document.getElementById('speedtest-btn');
+    const status = document.getElementById('speedtest-status');
+    const bar = document.getElementById('speedtest-bar');
+    const result = document.getElementById('speedtest-result');
+    bar.style.width = '100%';
+    status.textContent = 'Complete';
+    status.className = '';
+    status.style.cssText = 'font-size:10px;color:var(--green)';
+    btn.disabled = false;
+    btn.textContent = 'Run Again';
+    speedTestRunning = false;
+    document.getElementById('speedtest-value').textContent = mbps.toFixed(1);
+    document.getElementById('speedtest-detail').textContent = `${humanSize(d.bytes_per_sec)}/s`;
+    const now = new Date();
+    document.getElementById('speedtest-time').textContent = `Tested ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+    result.style.display = 'flex';
+    updateSel();
+    toast(`Speed test: ${mbps.toFixed(1)} MB/s`, true);
+  });
+  socket.on('speed_test_error', (d) => {
+    const btn = document.getElementById('speedtest-btn');
+    const status = document.getElementById('speedtest-status');
+    btn.disabled = false;
+    btn.textContent = 'Run Speed Test';
+    status.textContent = 'Failed';
+    status.className = '';
+    status.style.cssText = 'font-size:10px;color:var(--red)';
+    speedTestRunning = false;
+    toast('Speed test: ' + d.error);
+  });
 }
 
 function el(id) { return document.getElementById(id); }
@@ -1412,6 +1415,14 @@ function saveSettings() {
 }
 
 el('subfolder-input').addEventListener('input', updatePath);
+
+// Event delegation for file list clicks (avoids inline onclick + full re-render)
+document.getElementById('file-list').addEventListener('click', function(e) {
+  const item = e.target.closest('.file-item');
+  if (!item || !item.dataset.name) return;
+  toggleFile(item.dataset.name);
+});
+
 init();
 </script>
 </body>
