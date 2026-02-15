@@ -17,7 +17,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR"
 
 echo "→ Installing Python dependencies..."
-pip3 install -r requirements.txt --break-system-packages 2>/dev/null || pip3 install -r requirements.txt
+pip3 install -r requirements.txt --break-system-packages
 
 echo "→ Creating config directory..."
 mkdir -p /etc/offloader
