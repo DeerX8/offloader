@@ -182,6 +182,8 @@
   .file-list {
     background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
     max-height: 50vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch; contain: layout style;
+    will-change: scroll-position;
   }
   @media (min-width: 900px) {
     .file-list { max-height: 55vh; }
@@ -211,7 +213,7 @@
     display: flex; align-items: center; gap: 8px; padding: 8px 10px;
     border-bottom: 1px solid #14141f; cursor: pointer;
     -webkit-tap-highlight-color: transparent;
-    transition: background .1s;
+    contain: layout style;
   }
   .file-item:last-child { border-bottom: none; }
   .file-item.active, .file-item:hover { background: #6d28d908; }
@@ -292,7 +294,7 @@
     background: var(--surface); border-top: 1px solid var(--border2);
     padding: 10px 16px; padding-bottom: max(10px, env(safe-area-inset-bottom));
     display: flex; align-items: center; justify-content: space-between; z-index: 100;
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    transform: translateZ(0);
   }
   .bottom-info { font-size: 12px; color: var(--text2); }
   .bottom-info small { display: block; font-size: 10px; color: var(--text3); }
@@ -607,66 +609,7 @@
       <div>
         <div class="card history-card">
           <div class="card-label">Transfer History</div>
-
-          <div class="history-item">
-            <div class="history-icon ok">&#x2705;</div>
-            <div class="history-meta">
-              <div class="history-title">fishing</div>
-              <div class="history-sub">Feb 14 &bull; 12:34 PM &bull; 18m 42s</div>
-            </div>
-            <div class="history-stats">
-              <div class="size">234.5 GB</div>
-              <div class="speed">~209 MB/s avg</div>
-            </div>
-          </div>
-
-          <div class="history-item">
-            <div class="history-icon ok">&#x2705;</div>
-            <div class="history-meta">
-              <div class="history-title">sunset-timelapse</div>
-              <div class="history-sub">Feb 13 &bull; 9:10 AM &bull; 4m 12s</div>
-            </div>
-            <div class="history-stats">
-              <div class="size">52.1 GB</div>
-              <div class="speed">~206 MB/s avg</div>
-            </div>
-          </div>
-
-          <div class="history-item">
-            <div class="history-icon err">&#x26A0;&#xFE0F;</div>
-            <div class="history-meta">
-              <div class="history-title">drone-footage</div>
-              <div class="history-sub">Feb 12 &bull; 3:22 PM &bull; 22m 8s &bull; 2 errors</div>
-            </div>
-            <div class="history-stats">
-              <div class="size">312.0 GB</div>
-              <div class="speed">~235 MB/s avg</div>
-            </div>
-          </div>
-
-          <div class="history-item">
-            <div class="history-icon ok">&#x2705;</div>
-            <div class="history-meta">
-              <div class="history-title">concert-backup</div>
-              <div class="history-sub">Feb 11 &bull; 7:45 PM &bull; 8m 33s</div>
-            </div>
-            <div class="history-stats">
-              <div class="size">98.7 GB</div>
-              <div class="speed">~192 MB/s avg</div>
-            </div>
-          </div>
-
-          <div class="history-item">
-            <div class="history-icon ok">&#x2705;</div>
-            <div class="history-meta">
-              <div class="history-title">client-review</div>
-              <div class="history-sub">Feb 10 &bull; 11:00 AM &bull; 1m 45s</div>
-            </div>
-            <div class="history-stats">
-              <div class="size">18.2 GB</div>
-              <div class="speed">~173 MB/s avg</div>
-            </div>
-          </div>
+          <div id="history-list"></div>
         </div>
       </div>
 
@@ -874,6 +817,7 @@ let speedTestResult = null; // bytes per second, null = not tested
 let config = {};
 let nasConn = false, driveConn = false;
 let transferActive = false, transferFinished = false;
+let transferHistory = [];
 
 // ── File type helpers ──
 function getExt(n) { const p = n.split('.'); return p.length > 1 ? p.pop().toUpperCase() : ''; }
@@ -1031,24 +975,9 @@ function updateSel() {
 }
 
 function setFilter(btn, type) {
-  // Clear selection, then select only files matching the new filter
-  selected.clear();
   currentFilter = type;
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
   btn.classList.add('active');
-
-  if (type === 'all') {
-    // "All" filter: select everything
-    files.forEach(f => selected.add(f.name));
-  } else {
-    files.forEach(f => {
-      const ext = getExt(f.name);
-      if (type === 'video' && isVideo(ext)) selected.add(f.name);
-      else if (type === 'image' && isImage(ext)) selected.add(f.name);
-      else if (type === 'audio' && isAudio(ext)) selected.add(f.name);
-      else if (type === 'large' && f.size >= 1073741824) selected.add(f.name);
-    });
-  }
   renderFiles();
 }
 
@@ -1198,6 +1127,34 @@ function runSpeedTest() {
   socket.emit('speed_test');
 }
 
+// ── Transfer History ──
+function renderHistory() {
+  const container = el('history-list');
+  if (!transferHistory || transferHistory.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">No transfers yet</div>';
+    return;
+  }
+  // Show most recent first
+  const items = [...transferHistory].reverse();
+  container.innerHTML = items.map(h => {
+    const hasErrors = h.errors > 0;
+    const icon = hasErrors ? '&#x26A0;&#xFE0F;' : '&#x2705;';
+    const iconClass = hasErrors ? 'err' : 'ok';
+    const errText = hasErrors ? ` &bull; ${h.errors} error${h.errors>1?'s':''}` : '';
+    return `<div class="history-item">
+      <div class="history-icon ${iconClass}">${icon}</div>
+      <div class="history-meta">
+        <div class="history-title">${escH(h.title)}</div>
+        <div class="history-sub">${escH(h.date)} &bull; ${escH(h.time)} &bull; ${escH(h.duration)}${errText}</div>
+      </div>
+      <div class="history-stats">
+        <div class="size">${escH(h.total_size)}</div>
+        <div class="speed">~${escH(h.avg_speed)} avg</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ── Socket.io initialization and event handlers ──
 function init() {
   socket = io({ transports: ['websocket', 'polling'] });
@@ -1207,9 +1164,11 @@ function init() {
     driveConn = d.drive_mounted;
     nasConn = d.nas_mounted;
     files = d.files || [];
+    transferHistory = d.history || [];
     applyConfig();
     updateDrive(d.drive);
     updateNAS();
+    renderHistory();
 
     const t = d.transfer;
     if (t && t.active) {
@@ -1251,7 +1210,11 @@ function init() {
     markQueueDone(d.index);
   });
   socket.on('file_error', (d) => toast(d.name + ': ' + d.error));
-  socket.on('transfer_complete', (d) => { transferActive = false; transferFinished = true; showComplete(d, []); });
+  socket.on('transfer_complete', (d) => {
+    transferActive = false; transferFinished = true;
+    if (d.history) { transferHistory = d.history; renderHistory(); }
+    showComplete(d, []);
+  });
   socket.on('transfer_cancelled', () => { transferActive = false; showView('idle'); renderFiles(); toast('Transfer cancelled'); });
 
   // Speed test events
