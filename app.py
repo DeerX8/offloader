@@ -324,13 +324,28 @@ def human_size(nbytes):
     return f"{nbytes:.1f} PB"
 
 
+MIN_FILE_SIZE = 1024 * 1024  # 1 MB — skip tiny system/metadata files
+
+HIDDEN_DIRS = {
+    ".Spotlight-V100", ".fseventsd", ".Trashes", ".TemporaryItems",
+    ".DS_Store", "._.Trashes", ".journal", ".VolumeIcon.icns",
+    "System Volume Information", "$RECYCLE.BIN", "RECYCLER",
+}
+
+
 def scan_files(root):
     files = []
     root = Path(root)
     try:
         for fp in sorted(root.rglob("*")):
+            # Skip hidden files/dirs (dotfiles) and known system directories
+            parts = fp.relative_to(root).parts
+            if any(p.startswith(".") or p in HIDDEN_DIRS for p in parts):
+                continue
             if fp.is_file():
                 st = fp.stat()
+                if st.st_size < MIN_FILE_SIZE:
+                    continue
                 files.append({
                     "name": str(fp.relative_to(root)),
                     "size": st.st_size,
