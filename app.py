@@ -32,6 +32,7 @@ from flask_socketio import SocketIO, emit
 APP_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG_DIR = "/etc/offloader"
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+HISTORY_FILE = os.path.join(CONFIG_DIR, "history.json")
 USB_MOUNT = "/mnt/offloader/usb"
 NAS_MOUNT = "/mnt/offloader/nas"
 CHUNK_SIZE = 4 * 1024 * 1024  # 4 MB chunks for large video files
@@ -117,6 +118,32 @@ def save_config(cfg):
     os.makedirs(CONFIG_DIR, exist_ok=True)
     with open(CONFIG_FILE, "w") as f:
         json.dump(cfg, f, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Transfer history
+# ---------------------------------------------------------------------------
+MAX_HISTORY = 50
+
+def load_history():
+    try:
+        with open(HISTORY_FILE) as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def save_history(history):
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history[-MAX_HISTORY:], f, indent=2)
+
+
+def add_history_entry(entry):
+    history = load_history()
+    history.append(entry)
+    save_history(history)
+    return history
 
 
 # ---------------------------------------------------------------------------
@@ -525,6 +552,21 @@ def transfer_worker(selected_files, config):
         # Final milestone check (100%)
         check_milestones(config)
 
+        # Save to transfer history
+        history_entry = {
+            "title": config.get("subfolder") or "untitled",
+            "date": datetime.now().strftime("%b %d"),
+            "time": datetime.now().strftime("%I:%M %p"),
+            "duration": format_duration(elapsed),
+            "total_size": human_size(total_size),
+            "avg_speed": human_size(avg_speed) + "/s",
+            "total_files": len(to_copy),
+            "errors": len(transfer_state["errors"]),
+            "timestamp": time.time(),
+        }
+        history = add_history_entry(history_entry)
+        transfer_state["finish_summary"]["history"] = history
+
         socketio.emit("transfer_complete", transfer_state["finish_summary"])
 
 
@@ -603,6 +645,7 @@ def get_full_state():
         "files": drive_state["files"],
         "config": {k: v for k, v in cfg.items() if k != "smb_password"},
         "config_has_password": bool(cfg.get("smb_password")),
+        "history": load_history(),
         # Transfer state (always present so reconnecting clients get current progress)
         "transfer": {
             "active": transfer_state["active"],
