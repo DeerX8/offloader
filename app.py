@@ -417,8 +417,8 @@ def transfer_worker(selected_files, config):
             break
 
         src = Path(USB_MOUNT) / finfo["name"]
-        dst = dest_base / finfo["name"]
-        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst = dest_base / Path(finfo["name"]).name  # Just filename, no folder structure
+        dest_base.mkdir(parents=True, exist_ok=True)
 
         transfer_state["current_file"] = finfo["name"]
         transfer_state["current_file_index"] = i
