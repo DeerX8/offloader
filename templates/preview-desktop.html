@@ -526,7 +526,7 @@
           <span style="font-size:10px;color:var(--text3)">|</span>
           <button class="btn btn-sm btn-s" onclick="selectByType('video')">All Video</button>
           <button class="btn btn-sm btn-s" onclick="selectByType('image')">All Images</button>
-          <button class="btn btn-sm btn-s" onclick="selectByType('raw')">All RAW</button>
+          <button class="btn btn-sm btn-s" onclick="selectByType('audio')">All Audio</button>
         </div>
 
         <div class="file-list" id="file-list">
@@ -612,18 +612,87 @@
     </div><!-- /main-grid -->
   </div><!-- /view-idle -->
 
+  <!-- ═══ TRANSFER VIEW (with cancel button) ═══ -->
+  <div id="view-transfer" style="display:none">
+    <div class="status-grid">
+      <div class="card" style="grid-column: 1 / -1">
+        <div class="xfer-big">
+          <div class="xfer-pct" id="t-pct">47%</div>
+          <div class="xfer-sub" id="t-sub">11/26 files &bull; 38.2 GB / 81.4 GB</div>
+        </div>
+        <div class="prog-bg"><div class="prog-fill" id="t-bar" style="width:47%"></div></div>
+        <div class="prog-meta">
+          <span class="speed" id="t-speed">~218.4 MB/s</span>
+          <span class="eta" id="t-eta">ETA: 3m 12s remaining</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-grid" style="margin-top:12px">
+      <div class="card">
+        <div class="card-label">Current File</div>
+        <div id="t-curfile" style="font-size:13px;font-family:monospace;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0043.MP4</div>
+        <div class="file-prog" style="margin-top:6px"><div class="file-prog-bar" id="t-fileprog" style="width:63%"></div></div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:monospace">2.8 GB / 4.5 GB</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">Destination</div>
+        <div class="path-display" id="t-dest">//100.109.23.38/archive/wedding-shoot</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:4px">Started 2m 48s ago</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="card-label">Queue</div>
+      <div id="t-queue" style="max-height:240px;overflow:auto">
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C001_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">8.0 GB</span></div>
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C002_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">7.0 GB</span></div>
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C003_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">9.0 GB</span></div>
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C004_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">6.0 GB</span></div>
+        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C005_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">11.0 GB</span></div>
+        <div class="queue-item queue-cur"><span style="width:14px;text-align:center;font-size:9px">&#x25B6;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0043.MP4</span><span style="font-size:9px;color:var(--text3)">4.5 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0044.MP4</span><span style="font-size:9px;color:var(--text3)">2.0 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">GH011234.MP4</span><span style="font-size:9px;color:var(--text3)">6.0 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">GH011235.MP4</span><span style="font-size:9px;color:var(--text3)">8.0 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">behind_scenes_01.mov</span><span style="font-size:9px;color:var(--text3)">1.0 GB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">IMG_4521.jpg</span><span style="font-size:9px;color:var(--text3)">12.0 MB</span></div>
+        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DSC00142.ARW</span><span style="font-size:9px;color:var(--text3)">50.0 MB</span></div>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:12px 0">
+      <button class="btn btn-d" onclick="cancelMockTransfer()" style="padding:10px 28px;font-size:13px">Cancel Transfer</button>
+    </div>
+  </div><!-- /view-transfer -->
+
+  <!-- ═══ COMPLETE VIEW ═══ -->
+  <div id="view-complete" style="display:none">
+    <div class="card" style="text-align:center;border-color:#22c55e30">
+      <div class="complete-icon">&#x2705;</div>
+      <div class="complete-title">Transfer Complete</div>
+      <div class="complete-sub">26 files &bull; 81.4 GB &bull; 0 errors</div>
+      <div class="complete-detail">Duration: 6m 14s &bull; Avg: 218.4 MB/s</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Saved to</div>
+      <div class="path-display">//100.109.23.38/archive/wedding-shoot</div>
+    </div>
+    <button class="btn btn-p" onclick="showView('idle')" style="width:100%;justify-content:center;margin-top:8px">New Transfer</button>
+  </div>
+
 </div><!-- /app -->
 
 <!-- Bottom bar -->
 <div class="bottom-bar" id="bottom-bar">
   <div style="display:flex;align-items:center">
     <div class="bottom-info">
-      <span id="sel-info">18 files selected</span>
-      <small id="sel-size">156.2 GB</small>
+      <span id="sel-info">26 files selected</span>
+      <small id="sel-size">81.4 GB</small>
     </div>
     <span class="kbd-hint" style="margin-left:16px"><kbd>Space</kbd> toggle &nbsp; <kbd>Ctrl</kbd>+<kbd>A</kbd> all &nbsp; <kbd>Enter</kbd> transfer</span>
   </div>
-  <button class="btn btn-p" id="xfer-btn">Transfer &#x2192;</button>
+  <button class="btn btn-p" id="xfer-btn" onclick="startMockTransfer()">Transfer &#x2192;</button>
 </div>
 
 <!-- Keyboard Shortcuts Overlay (Phase 2) -->
@@ -676,30 +745,38 @@
 <script>
 // ── Mock data ──
 const MOCK_FILES = [
+  // BRAW (Blackmagic RAW cinema camera)
   { name: "A001_C001_01141Y.braw", size: 8589934592, size_human: "8.0 GB", date: "2026-02-14 10:23" },
   { name: "A001_C002_01141Y.braw", size: 7516192768, size_human: "7.0 GB", date: "2026-02-14 10:31" },
   { name: "A001_C003_01141Y.braw", size: 9663676416, size_human: "9.0 GB", date: "2026-02-14 10:45" },
   { name: "A001_C004_01141Y.braw", size: 6442450944, size_human: "6.0 GB", date: "2026-02-14 11:02" },
   { name: "A001_C005_01141Y.braw", size: 11811160064, size_human: "11.0 GB", date: "2026-02-14 11:15" },
   { name: "B002_C001_02141Y.braw", size: 5368709120, size_human: "5.0 GB", date: "2026-02-14 13:00" },
-  { name: "B002_C002_02141Y.braw", size: 4294967296, size_human: "4.0 GB", date: "2026-02-14 13:12" },
-  { name: "B002_C003_02141Y.braw", size: 7516192768, size_human: "7.0 GB", date: "2026-02-14 13:28" },
+  // MP4
   { name: "DJI_0042.MP4", size: 3221225472, size_human: "3.0 GB", date: "2026-02-14 14:00" },
   { name: "DJI_0043.MP4", size: 4831838208, size_human: "4.5 GB", date: "2026-02-14 14:10" },
   { name: "DJI_0044.MP4", size: 2147483648, size_human: "2.0 GB", date: "2026-02-14 14:22" },
   { name: "GH011234.MP4", size: 6442450944, size_human: "6.0 GB", date: "2026-02-14 15:00" },
   { name: "GH011235.MP4", size: 8589934592, size_human: "8.0 GB", date: "2026-02-14 15:18" },
-  { name: "GH011236.MP4", size: 5368709120, size_human: "5.0 GB", date: "2026-02-14 15:35" },
-  { name: "IMG_4521.DNG", size: 52428800, size_human: "50.0 MB", date: "2026-02-14 11:30" },
-  { name: "IMG_4522.DNG", size: 53477376, size_human: "51.0 MB", date: "2026-02-14 11:31" },
-  { name: "IMG_4523.DNG", size: 51380224, size_human: "49.0 MB", date: "2026-02-14 11:31" },
-  { name: "IMG_4524.DNG", size: 54525952, size_human: "52.0 MB", date: "2026-02-14 11:32" },
-  { name: "ZOOM_H6_001.WAV", size: 734003200, size_human: "700.0 MB", date: "2026-02-14 10:20" },
-  { name: "ZOOM_H6_002.WAV", size: 524288000, size_human: "500.0 MB", date: "2026-02-14 13:00" },
-  { name: "behind_scenes_01.MOV", size: 1073741824, size_human: "1.0 GB", date: "2026-02-14 16:00" },
-  { name: "behind_scenes_02.MOV", size: 1610612736, size_human: "1.5 GB", date: "2026-02-14 16:15" },
-  { name: "interview_rough.MXF", size: 12884901888, size_human: "12.0 GB", date: "2026-02-14 12:00" },
-  { name: "slate_notes.txt", size: 2048, size_human: "2.0 KB", date: "2026-02-14 17:00" },
+  // MOV
+  { name: "behind_scenes_01.mov", size: 1073741824, size_human: "1.0 GB", date: "2026-02-14 16:00" },
+  { name: "behind_scenes_02.mov", size: 1610612736, size_human: "1.5 GB", date: "2026-02-14 16:15" },
+  { name: "interview_A_cam.mov", size: 12884901888, size_human: "12.0 GB", date: "2026-02-14 12:00" },
+  // JPG / JPEG
+  { name: "IMG_4521.jpg", size: 12582912, size_human: "12.0 MB", date: "2026-02-14 11:30" },
+  { name: "IMG_4522.jpg", size: 11534336, size_human: "11.0 MB", date: "2026-02-14 11:31" },
+  { name: "IMG_4523.jpeg", size: 13631488, size_human: "13.0 MB", date: "2026-02-14 11:31" },
+  { name: "IMG_4524.jpeg", size: 10485760, size_human: "10.0 MB", date: "2026-02-14 11:32" },
+  { name: "BTS_poster_01.jpg", size: 8388608, size_human: "8.0 MB", date: "2026-02-14 16:30" },
+  // ARW (Sony RAW)
+  { name: "DSC00142.ARW", size: 52428800, size_human: "50.0 MB", date: "2026-02-14 11:30" },
+  { name: "DSC00143.ARW", size: 53477376, size_human: "51.0 MB", date: "2026-02-14 11:31" },
+  { name: "DSC00144.ARW", size: 51380224, size_human: "49.0 MB", date: "2026-02-14 11:33" },
+  { name: "DSC00145.ARW", size: 54525952, size_human: "52.0 MB", date: "2026-02-14 11:34" },
+  // MP3
+  { name: "voice_memo_001.mp3", size: 15728640, size_human: "15.0 MB", date: "2026-02-14 10:20" },
+  { name: "voice_memo_002.mp3", size: 10485760, size_human: "10.0 MB", date: "2026-02-14 13:00" },
+  { name: "ambient_room_tone.mp3", size: 5242880, size_human: "5.0 MB", date: "2026-02-14 09:45" },
 ];
 
 let files = [...MOCK_FILES];
@@ -710,21 +787,22 @@ let currentFilter = 'all';
 // ── File type helpers ──
 function getExt(n) { const p = n.split('.'); return p.length > 1 ? p.pop().toUpperCase() : ''; }
 
-const VIDEO_EXT = new Set(['MP4','MOV','MXF','AVI','MKV','WEBM','ProRes']);
-const IMAGE_EXT = new Set(['DNG','JPG','JPEG','PNG','TIFF','TIF','CR3','ARW','NEF']);
-const RAW_EXT = new Set(['BRAW','DNG','CR3','ARW','NEF','RAF']);
-const AUDIO_EXT = new Set(['WAV','MP3','FLAC','AAC','AIFF']);
+// BRAW is Blackmagic cinema camera footage — it's video, not image
+const VIDEO_EXT = new Set(['BRAW','MP4','MOV','MXF','AVI','MKV','WEBM']);
+const IMAGE_EXT = new Set(['JPG','JPEG','PNG','TIFF','TIF','ARW','CR3','DNG','NEF','RAF']);
+const AUDIO_EXT = new Set(['MP3','WAV','FLAC','AAC','AIFF']);
 
 function isVideo(ext) { return VIDEO_EXT.has(ext); }
-function isImage(ext) { return IMAGE_EXT.has(ext) || RAW_EXT.has(ext); }
+function isImage(ext) { return IMAGE_EXT.has(ext); }
 function isAudio(ext) { return AUDIO_EXT.has(ext); }
-function isRaw(ext) { return RAW_EXT.has(ext); }
 
 function extStyle(ext) {
   const m = {
     BRAW:['#c4b5fd','#c4b5fd18'], MP4:['#67e8f9','#67e8f918'], MOV:['#67e8f9','#67e8f918'],
-    WAV:['#fbbf24','#fbbf2418'], DNG:['#6ee7b7','#6ee7b718'], MXF:['#f472b6','#f472b618'],
-    TXT:['#94a3b8','#94a3b818']
+    MXF:['#f472b6','#f472b618'],
+    JPG:['#f97316','#f9731618'], JPEG:['#f97316','#f9731618'],
+    ARW:['#6ee7b7','#6ee7b718'], DNG:['#6ee7b7','#6ee7b718'],
+    MP3:['#fbbf24','#fbbf2418'], WAV:['#fbbf24','#fbbf2418'],
   };
   return m[ext] || ['#94a3b8','#94a3b818'];
 }
@@ -798,11 +876,13 @@ function toggleFile(name) {
 function selectAll() { files.forEach(f => selected.add(f.name)); renderFiles(); }
 function selectNone() { selected.clear(); renderFiles(); }
 function selectByType(type) {
+  // Clear first, then select only matching files
+  selected.clear();
   files.forEach(f => {
     const ext = getExt(f.name);
-    if (type === 'video' && (isVideo(ext) || ext === 'BRAW')) selected.add(f.name);
+    if (type === 'video' && isVideo(ext)) selected.add(f.name);
     else if (type === 'image' && isImage(ext)) selected.add(f.name);
-    else if (type === 'raw' && isRaw(ext)) selected.add(f.name);
+    else if (type === 'audio' && isAudio(ext)) selected.add(f.name);
   });
   renderFiles();
 }
@@ -814,10 +894,25 @@ function updateSel() {
   document.getElementById('sel-size').textContent = c > 0 ? humanSize(bytes) : '';
 }
 
-function setFilter(el, type) {
+function setFilter(btn, type) {
+  // Clear selection, then select only files matching the new filter
+  selected.clear();
   currentFilter = type;
   document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
+  btn.classList.add('active');
+
+  if (type === 'all') {
+    // "All" filter: select everything
+    files.forEach(f => selected.add(f.name));
+  } else {
+    files.forEach(f => {
+      const ext = getExt(f.name);
+      if (type === 'video' && isVideo(ext)) selected.add(f.name);
+      else if (type === 'image' && isImage(ext)) selected.add(f.name);
+      else if (type === 'audio' && isAudio(ext)) selected.add(f.name);
+      else if (type === 'large' && f.size >= 1073741824) selected.add(f.name);
+    });
+  }
   renderFiles();
 }
 
@@ -880,11 +975,15 @@ document.addEventListener('keydown', (e) => {
   }
   else if (e.key === 'Enter') {
     e.preventDefault();
-    toast('Transfer started! (preview only)', true);
+    startMockTransfer();
   }
   else if (e.key === 'Escape') {
-    document.getElementById('shortcuts-overlay').classList.remove('open');
-    document.getElementById('settings-overlay').classList.remove('open');
+    // Close overlays first, then cancel transfer if in transfer view
+    const sc = document.getElementById('shortcuts-overlay');
+    const st = document.getElementById('settings-overlay');
+    if (sc.classList.contains('open')) { sc.classList.remove('open'); }
+    else if (st.classList.contains('open')) { st.classList.remove('open'); }
+    else if (document.getElementById('view-transfer').style.display !== 'none') { cancelMockTransfer(); }
   }
 });
 
@@ -900,13 +999,27 @@ function toast(msg, ok) {
   setTimeout(() => t.className = 'toast', 3000);
 }
 
-// ── Init with some pre-selected files ──
-['A001_C001_01141Y.braw','A001_C002_01141Y.braw','A001_C003_01141Y.braw',
- 'A001_C004_01141Y.braw','A001_C005_01141Y.braw','B002_C001_02141Y.braw',
- 'B002_C002_02141Y.braw','B002_C003_02141Y.braw','DJI_0042.MP4','DJI_0043.MP4',
- 'DJI_0044.MP4','GH011234.MP4','GH011235.MP4','GH011236.MP4',
- 'behind_scenes_01.MOV','behind_scenes_02.MOV','interview_rough.MXF',
- 'ZOOM_H6_001.WAV'].forEach(n => selected.add(n));
+// ── View switching ──
+function showView(v) {
+  document.getElementById('view-idle').style.display = v === 'idle' ? '' : 'none';
+  document.getElementById('view-transfer').style.display = v === 'transfer' ? '' : 'none';
+  document.getElementById('view-complete').style.display = v === 'complete' ? '' : 'none';
+  document.getElementById('bottom-bar').style.display = v === 'idle' ? '' : 'none';
+}
+
+function startMockTransfer() {
+  if (selected.size === 0) { toast('No files selected'); return; }
+  showView('transfer');
+  toast('Transfer started (preview demo)', true);
+}
+
+function cancelMockTransfer() {
+  showView('idle');
+  toast('Transfer cancelled (preview demo)');
+}
+
+// ── Init with all files pre-selected ──
+files.forEach(f => selected.add(f.name));
 renderFiles();
 </script>
 </body>
