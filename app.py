@@ -488,6 +488,9 @@ def transfer_worker(selected_files, config):
                             "name": finfo["name"],
                             "file_percent": file_pct,
                             "overall_percent": overall_pct,
+                            "completed_files": transfer_state["completed_files"],
+                            "total_files": transfer_state["total_files"],
+                            "bytes_done": transfer_state["bytes_done"],
                             "speed_bps": transfer_state["speed_bps"],
                             "speed_human": human_size(transfer_state["speed_bps"]) + "/s",
                             "eta_seconds": transfer_state["eta_seconds"],
@@ -563,6 +566,7 @@ def transfer_worker(selected_files, config):
             "total_files": len(to_copy),
             "errors": len(transfer_state["errors"]),
             "timestamp": time.time(),
+            "file_names": [f["name"] for f in to_copy],
         }
         history = add_history_entry(history_entry)
         transfer_state["finish_summary"]["history"] = history
