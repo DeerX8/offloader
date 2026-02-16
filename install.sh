@@ -29,13 +29,6 @@ mkdir -p /etc/offloader
 echo "→ Creating mount directories..."
 mkdir -p /mnt/offloader/usb /mnt/offloader/nas
 
-echo "→ Setting up passwordless sudo for mount/umount..."
-cat > /etc/sudoers.d/offloader << 'SUDOERS'
-# Allow offloader service (pi user) to mount/unmount without password
-pi ALL=(root) NOPASSWD: /usr/bin/mount, /usr/bin/umount, /usr/sbin/mount.cifs
-SUDOERS
-chmod 440 /etc/sudoers.d/offloader
-
 echo "→ Installing systemd service..."
 cp offloader.service /etc/systemd/system/
 systemctl daemon-reload

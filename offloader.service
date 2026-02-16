@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
+User=root
 WorkingDirectory=/home/pi/offloader
 ExecStart=/usr/bin/python3 /home/pi/offloader/app.py
 Restart=always

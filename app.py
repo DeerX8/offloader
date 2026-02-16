@@ -355,9 +355,9 @@ def mount_usb(device):
     """Mount a USB device read-only. Thread-safe via mount_lock."""
     with mount_lock:
         ensure_dir(USB_MOUNT)
-        subprocess.run(["sudo", "umount", USB_MOUNT], capture_output=True)
+        subprocess.run(["umount", USB_MOUNT], capture_output=True)
         r = subprocess.run(
-            ["sudo", "mount", "-o", "ro", device, USB_MOUNT],
+            ["mount", "-o", "ro", device, USB_MOUNT],
             capture_output=True, text=True,
         )
         if r.returncode != 0:
@@ -383,7 +383,7 @@ def mount_usb_with_retry(device, retries=MOUNT_RETRIES):
 def unmount_usb():
     """Unmount USB and clear drive state. Thread-safe via mount_lock."""
     with mount_lock:
-        subprocess.run(["sudo", "umount", "-l", USB_MOUNT], capture_output=True)
+        subprocess.run(["umount", "-l", USB_MOUNT], capture_output=True)
         drive_state["drive_mounted"] = False
         drive_state["drive"] = None
         drive_state["files"] = []
@@ -395,7 +395,7 @@ def unmount_usb():
 # ---------------------------------------------------------------------------
 def mount_nas(config):
     ensure_dir(NAS_MOUNT)
-    subprocess.run(["sudo", "umount", "-l", NAS_MOUNT], capture_output=True)
+    subprocess.run(["umount", "-l", NAS_MOUNT], capture_output=True)
 
     ip = config["nas_ip"] if config.get("use_tailscale") else config.get("nas_ip_local", config["nas_ip"])
     share = f"//{ip}/{config['share_name']}"
@@ -408,7 +408,7 @@ def mount_nas(config):
     opts += ",uid=0,gid=0,file_mode=0777,dir_mode=0777"
 
     r = subprocess.run(
-        ["sudo", "mount", "-t", "cifs", share, NAS_MOUNT, "-o", opts],
+        ["mount", "-t", "cifs", share, NAS_MOUNT, "-o", opts],
         capture_output=True, text=True,
     )
     if r.returncode != 0:
@@ -417,7 +417,7 @@ def mount_nas(config):
 
 
 def unmount_nas():
-    subprocess.run(["sudo", "umount", "-l", NAS_MOUNT], capture_output=True)
+    subprocess.run(["umount", "-l", NAS_MOUNT], capture_output=True)
     drive_state["nas_mounted"] = False
 
 
@@ -924,13 +924,8 @@ def on_speed_test():
 # Main
 # ---------------------------------------------------------------------------
 def ensure_dir(path):
-    """Create directory, using sudo if needed (for /mnt paths)."""
-    if os.path.isdir(path):
-        return
-    try:
-        os.makedirs(path, exist_ok=True)
-    except PermissionError:
-        subprocess.run(["sudo", "mkdir", "-p", path], check=True)
+    """Create directory if it doesn't exist."""
+    os.makedirs(path, exist_ok=True)
 
 
 def main():
