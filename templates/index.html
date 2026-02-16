@@ -323,10 +323,11 @@
 
   /* ── KEYBOARD SHORTCUTS OVERLAY ── */
   .shortcuts-overlay {
-    display: none; position: fixed; inset: 0; background: #00000080; z-index: 200;
-    align-items: center; justify-content: center;
+    position: fixed; inset: 0; background: #00000080; z-index: 200;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .15s;
   }
-  .shortcuts-overlay.open { display: flex; }
+  .shortcuts-overlay.open { opacity: 1; pointer-events: auto; visibility: visible; }
   .shortcuts-panel {
     background: var(--surface); border: 1px solid var(--border2); border-radius: 16px;
     padding: 24px 28px; max-width: 440px; width: 90%;
@@ -349,10 +350,14 @@
   }
 
   /* ── SETTINGS OVERLAY ── */
-  .overlay { display: none; position: fixed; inset: 0; background: #00000080; z-index: 150; }
-  .overlay.open { display: flex; align-items: flex-end; justify-content: center; }
+  .overlay {
+    position: fixed; inset: 0; background: #00000080; z-index: 150;
+    display: flex; align-items: flex-end; justify-content: center;
+    opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .15s;
+  }
+  .overlay.open { opacity: 1; pointer-events: auto; visibility: visible; }
   @media (min-width: 900px) {
-    .overlay.open { align-items: center; }
+    .overlay { align-items: center; }
   }
   .settings-panel {
     background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 640px;
@@ -451,10 +456,11 @@
 
   /* ── CONFIRM OVERLAY ── */
   .confirm-overlay {
-    display: none; position: fixed; inset: 0; background: #00000080; z-index: 180;
-    align-items: center; justify-content: center;
+    position: fixed; inset: 0; background: #00000080; z-index: 180;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; visibility: hidden; transition: opacity .15s;
   }
-  .confirm-overlay.open { display: flex; }
+  .confirm-overlay.open { opacity: 1; pointer-events: auto; visibility: visible; }
   .confirm-panel {
     background: var(--surface); border: 1px solid var(--border2); border-radius: 16px;
     padding: 24px 28px; max-width: 480px; width: 90%;
@@ -621,13 +627,13 @@
     <div class="status-grid">
       <div class="card" style="grid-column: 1 / -1">
         <div class="xfer-big">
-          <div class="xfer-pct" id="t-pct">47%</div>
-          <div class="xfer-sub" id="t-sub">11/26 files &bull; 38.2 GB / 81.4 GB</div>
+          <div class="xfer-pct" id="t-pct">0%</div>
+          <div class="xfer-sub" id="t-sub"></div>
         </div>
-        <div class="prog-bg"><div class="prog-fill" id="t-bar" style="width:47%"></div></div>
+        <div class="prog-bg"><div class="prog-fill" id="t-bar" style="width:0%"></div></div>
         <div class="prog-meta">
-          <span class="speed" id="t-speed">~218.4 MB/s</span>
-          <span class="eta" id="t-eta">ETA: 3m 12s remaining</span>
+          <span class="speed" id="t-speed"></span>
+          <span class="eta" id="t-eta"></span>
         </div>
       </div>
     </div>
@@ -635,34 +641,19 @@
     <div class="status-grid" style="margin-top:12px">
       <div class="card">
         <div class="card-label">Current File</div>
-        <div id="t-curfile" style="font-size:13px;font-family:monospace;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0043.MP4</div>
-        <div class="file-prog" style="margin-top:6px"><div class="file-prog-bar" id="t-fileprog" style="width:63%"></div></div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px;font-family:monospace">2.8 GB / 4.5 GB</div>
+        <div id="t-curfile" style="font-size:13px;font-family:monospace;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
+        <div class="file-prog" style="margin-top:6px"><div class="file-prog-bar" id="t-fileprog" style="width:0%"></div></div>
       </div>
 
       <div class="card">
         <div class="card-label">Destination</div>
-        <div class="path-display" id="t-dest">//100.109.23.38/archive/wedding-shoot</div>
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">Started 2m 48s ago</div>
+        <div class="path-display" id="t-dest"></div>
       </div>
     </div>
 
     <div class="card" style="margin-top:12px">
       <div class="card-label">Queue</div>
-      <div id="t-queue" style="max-height:240px;overflow:auto">
-        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C001_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">8.0 GB</span></div>
-        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C002_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">7.0 GB</span></div>
-        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C003_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">9.0 GB</span></div>
-        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C004_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">6.0 GB</span></div>
-        <div class="queue-item queue-done"><span style="width:14px;text-align:center;font-size:9px;color:var(--green)">&#x2713;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">A001_C005_01141Y.braw</span><span style="font-size:9px;color:var(--text3)">11.0 GB</span></div>
-        <div class="queue-item queue-cur"><span style="width:14px;text-align:center;font-size:9px">&#x25B6;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0043.MP4</span><span style="font-size:9px;color:var(--text3)">4.5 GB</span></div>
-        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DJI_0044.MP4</span><span style="font-size:9px;color:var(--text3)">2.0 GB</span></div>
-        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">GH011234.MP4</span><span style="font-size:9px;color:var(--text3)">6.0 GB</span></div>
-        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">GH011235.MP4</span><span style="font-size:9px;color:var(--text3)">8.0 GB</span></div>
-        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">behind_scenes_01.mov</span><span style="font-size:9px;color:var(--text3)">1.0 GB</span></div>
-        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">IMG_4521.jpg</span><span style="font-size:9px;color:var(--text3)">12.0 MB</span></div>
-        <div class="queue-item queue-pend"><span style="width:14px;text-align:center;font-size:9px">&#x00B7;</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">DSC00142.ARW</span><span style="font-size:9px;color:var(--text3)">50.0 MB</span></div>
-      </div>
+      <div id="t-queue" style="max-height:240px;overflow:auto"></div>
     </div>
 
     <div style="text-align:center;padding:12px 0">
@@ -694,8 +685,8 @@
 <div class="bottom-bar" id="bottom-bar">
   <div style="display:flex;align-items:center">
     <div class="bottom-info">
-      <span id="sel-info">26 files selected</span>
-      <small id="sel-size">81.4 GB</small>
+      <span id="sel-info">No files selected</span>
+      <small id="sel-size"></small>
       <div class="eta-badge" id="sel-eta"></div>
     </div>
     <span class="kbd-hint" style="margin-left:16px"><kbd>Space</kbd> toggle &nbsp; <kbd>Ctrl</kbd>+<kbd>A</kbd> all &nbsp; <kbd>Enter</kbd> transfer</span>
@@ -794,7 +785,7 @@
       </div>
     </div>
     <div style="font-size:10px;color:var(--text3);margin-bottom:6px;letter-spacing:0.3px;font-weight:600;text-transform:uppercase">Destination</div>
-    <div class="confirm-dest" id="confirm-dest">//100.109.23.38/archive/wedding-shoot</div>
+    <div class="confirm-dest" id="confirm-dest"></div>
     <div class="confirm-eta" id="confirm-eta-note"></div>
     <div class="confirm-btns">
       <button class="btn btn-p" onclick="confirmTransfer()" style="flex:1">Start Transfer</button>
@@ -818,6 +809,7 @@ let config = {};
 let nasConn = false, driveConn = false;
 let transferActive = false, transferFinished = false;
 let transferHistory = [];
+let transferTotalFiles = 0, transferTotalSize = 0, transferTotalSizeHuman = '';
 
 // ── File type helpers ──
 function getExt(n) { const p = n.split('.'); return p.length > 1 ? p.pop().toUpperCase() : ''; }
@@ -848,23 +840,26 @@ function humanSize(b) {
   return b.toFixed(1) + ' ' + u[i];
 }
 
-// ── Rendering ──
+// ── Rendering (virtual scroll) ──
+let cachedVisible = [];
+let vsRAF = null;
+
+function getItemH() { return window.innerWidth >= 900 ? 42 : 37; }
+
 function getVisibleFiles() {
   let result = [...files];
-  // Filter
   const query = document.getElementById('search-input').value.toLowerCase();
   if (query) result = result.filter(f => f.name.toLowerCase().includes(query));
   if (currentFilter === 'video') result = result.filter(f => isVideo(getExt(f.name)));
   else if (currentFilter === 'image') result = result.filter(f => isImage(getExt(f.name)));
   else if (currentFilter === 'audio') result = result.filter(f => isAudio(getExt(f.name)));
   else if (currentFilter === 'large') result = result.filter(f => f.size >= 1073741824);
-  // Sort
   const sort = document.getElementById('sort-select').value;
   if (sort === 'name') result.sort((a,b) => a.name.localeCompare(b.name));
   else if (sort === 'size-desc') result.sort((a,b) => b.size - a.size);
   else if (sort === 'size-asc') result.sort((a,b) => a.size - b.size);
   else if (sort === 'type') result.sort((a,b) => getExt(a.name).localeCompare(getExt(b.name)));
-  else if (sort === 'date') result.sort((a,b) => b.date.localeCompare(a.date));
+  else if (sort === 'date') result.sort((a,b) => (b.date||'').localeCompare(a.date||''));
   return result;
 }
 
@@ -877,41 +872,60 @@ function renderFiles() {
       <div style="font-size:13px">${driveConn ? 'No files found on drive' : 'Connect a USB drive to get started'}</div>
     </div>`;
     document.getElementById('file-count').textContent = '';
+    cachedVisible = [];
     updateSel();
     return;
   }
 
-  const visible = getVisibleFiles();
+  cachedVisible = getVisibleFiles();
+  const itemH = getItemH();
+  const totalH = cachedVisible.length * itemH;
 
-  // Keep table header
-  let html = `<div class="file-table-head">
+  list.innerHTML = `<div class="file-table-head">
     <span></span>
     <span>Name</span>
     <span>Size</span>
     <span>Type</span>
     <span>Modified</span>
-  </div>`;
+  </div>
+  <div id="vs-container" style="position:relative;height:${totalH}px"></div>`;
 
-  html += visible.map((f, i) => {
+  paintVisibleRows();
+
+  const totalSize = files.reduce((a,f) => a+f.size, 0);
+  document.getElementById('file-count').textContent = `${cachedVisible.length} files \u2022 ${humanSize(totalSize)}`;
+  updateSel();
+}
+
+function paintVisibleRows() {
+  const list = document.getElementById('file-list');
+  const container = document.getElementById('vs-container');
+  if (!container || cachedVisible.length === 0) return;
+
+  const itemH = getItemH();
+  const scrollTop = list.scrollTop;
+  const viewH = list.clientHeight;
+  const BUFFER = 15;
+
+  const start = Math.max(0, Math.floor(scrollTop / itemH) - BUFFER);
+  const end = Math.min(cachedVisible.length, Math.ceil((scrollTop + viewH) / itemH) + BUFFER);
+
+  let html = '';
+  for (let i = start; i < end; i++) {
+    const f = cachedVisible[i];
     const ext = getExt(f.name);
     const [fg, bg] = extStyle(ext);
     const on = selected.has(f.name);
-    const focused = i === focusIdx ? 'active' : '';
-    return `<div class="file-item ${focused}" data-name="${escH(f.name)}" data-idx="${i}">
+    const focused = i === focusIdx ? ' active' : '';
+    html += `<div class="file-item${focused}" data-name="${escH(f.name)}" data-idx="${i}" style="position:absolute;top:${i*itemH}px;left:0;right:0;height:${itemH}px">
       <div class="chk ${on?'on':''}">&#x2713;</div>
       <div class="file-name">${escH(f.name)}</div>
       <span class="file-size">${f.size_human}</span>
       ${ext?`<span class="file-ext" style="color:${fg};background:${bg}">${ext}</span>`:''}
       <span class="file-date">${f.date || ''}</span>
     </div>`;
-  }).join('');
-
-  list.innerHTML = html;
-
-  // Update counts
-  const totalSize = files.reduce((a,f) => a+f.size, 0);
-  document.getElementById('file-count').textContent = `${visible.length} files \u2022 ${humanSize(totalSize)}`;
-  updateSel();
+  }
+  container.innerHTML = html;
 }
 
 function toggleFile(name) {
@@ -994,13 +1008,10 @@ function toggleShortcuts() {
 
 // ── Keyboard shortcuts (Phase 2) ──
 document.addEventListener('keydown', (e) => {
-  // Don't trigger when typing in inputs
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') {
     if (e.key === 'Escape') e.target.blur();
     return;
   }
-
-  const visible = getVisibleFiles();
 
   if (e.key === '?') {
     e.preventDefault();
@@ -1016,19 +1027,19 @@ document.addEventListener('keydown', (e) => {
   }
   else if (e.key === 'ArrowDown') {
     e.preventDefault();
-    focusIdx = Math.min(focusIdx + 1, visible.length - 1);
-    renderFiles();
+    focusIdx = Math.min(focusIdx + 1, cachedVisible.length - 1);
+    paintVisibleRows();
     scrollToFocused();
   }
   else if (e.key === 'ArrowUp') {
     e.preventDefault();
     focusIdx = Math.max(focusIdx - 1, 0);
-    renderFiles();
+    paintVisibleRows();
     scrollToFocused();
   }
-  else if (e.key === ' ' && focusIdx >= 0 && focusIdx < visible.length) {
+  else if (e.key === ' ' && focusIdx >= 0 && focusIdx < cachedVisible.length) {
     e.preventDefault();
-    toggleFile(visible[focusIdx].name);
+    toggleFile(cachedVisible[focusIdx].name);
   }
   else if (e.key === 'a' && (e.ctrlKey || e.metaKey)) {
     e.preventDefault();
@@ -1056,8 +1067,17 @@ document.addEventListener('keydown', (e) => {
 });
 
 function scrollToFocused() {
-  const items = document.querySelectorAll('.file-item');
-  if (items[focusIdx]) items[focusIdx].scrollIntoView({ block: 'nearest' });
+  if (focusIdx < 0) return;
+  const list = document.getElementById('file-list');
+  const itemH = getItemH();
+  const targetTop = focusIdx * itemH;
+  const scrollTop = list.scrollTop;
+  const viewH = list.clientHeight;
+  if (targetTop < scrollTop) {
+    list.scrollTop = targetTop;
+  } else if (targetTop + itemH > scrollTop + viewH) {
+    list.scrollTop = targetTop + itemH - viewH;
+  }
 }
 
 function toast(msg, ok) {
@@ -1141,11 +1161,18 @@ function renderHistory() {
     const icon = hasErrors ? '&#x26A0;&#xFE0F;' : '&#x2705;';
     const iconClass = hasErrors ? 'err' : 'ok';
     const errText = hasErrors ? ` &bull; ${h.errors} error${h.errors>1?'s':''}` : '';
+    const fileNames = h.file_names || [];
+    const filesSummary = fileNames.length > 0
+      ? fileNames.length <= 3
+        ? fileNames.map(n => escH(n)).join(', ')
+        : fileNames.slice(0, 2).map(n => escH(n)).join(', ') + ` +${fileNames.length - 2} more`
+      : `${h.total_files} file${h.total_files !== 1 ? 's' : ''}`;
     return `<div class="history-item">
       <div class="history-icon ${iconClass}">${icon}</div>
       <div class="history-meta">
         <div class="history-title">${escH(h.title)}</div>
-        <div class="history-sub">${escH(h.date)} &bull; ${escH(h.time)} &bull; ${escH(h.duration)}${errText}</div>
+        <div class="history-sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${filesSummary}</div>
+        <div class="history-sub">${escH(h.date)} \u2022 ${escH(h.time)} \u2022 ${escH(h.duration)}${errText}</div>
       </div>
       <div class="history-stats">
         <div class="size">${escH(h.total_size)}</div>
@@ -1194,7 +1221,24 @@ function init() {
   socket.on('files_updated', (d) => { files = d.files || []; renderFiles(); });
   socket.on('error', (d) => toast(d.message));
 
-  socket.on('transfer_started', (d) => { transferActive = true; showView('transfer'); });
+  socket.on('transfer_started', (d) => {
+    transferActive = true;
+    transferTotalFiles = d.total_files;
+    transferTotalSize = d.total_size;
+    transferTotalSizeHuman = d.total_size_human;
+    el('t-pct').textContent = '0%';
+    el('t-bar').style.width = '0%';
+    el('t-sub').textContent = `0/${d.total_files} files \u2022 0 B / ${d.total_size_human}`;
+    el('t-speed').textContent = '';
+    el('t-eta').textContent = '';
+    el('t-curfile').textContent = '';
+    el('t-fileprog').style.width = '0%';
+    el('t-dest').textContent = el('nas-path').textContent || '';
+    // Build queue from selected files
+    const selectedFiles = [...selected];
+    renderQueue(selectedFiles, [], 0);
+    showView('transfer');
+  });
   socket.on('file_started', (d) => { el('t-curfile').textContent = d.name; el('t-fileprog').style.width = '0%'; highlightQueue(d.index); });
   socket.on('file_progress', (d) => {
     el('t-pct').textContent = Math.round(d.overall_percent) + '%';
@@ -1202,8 +1246,9 @@ function init() {
     el('t-fileprog').style.width = Math.round(d.file_percent) + '%';
     el('t-speed').textContent = '~' + d.speed_human;
     el('t-eta').textContent = 'ETA: ' + d.eta_human;
+    el('t-sub').textContent = `${d.completed_files}/${d.total_files} files \u2022 ${humanSize(d.bytes_done)} / ${transferTotalSizeHuman}`;
   });
-  socket.on('file_verifying', (d) => { el('t-curfile').textContent = '🔍 ' + d.name; });
+  socket.on('file_verifying', (d) => { el('t-curfile').textContent = d.name; });
   socket.on('file_complete', (d) => {
     el('t-pct').textContent = Math.round(d.overall_percent) + '%';
     el('t-bar').style.width = Math.round(d.overall_percent) + '%';
@@ -1301,15 +1346,18 @@ function updateNAS() {
 
 // Transfer UI helpers
 function updateTransferUI(t) {
+  transferTotalFiles = t.total_files;
+  transferTotalSize = t.total_bytes;
+  transferTotalSizeHuman = humanSize(t.total_bytes);
   const pct = Math.round(t.overall_percent);
   el('t-pct').textContent = pct + '%';
   el('t-bar').style.width = pct + '%';
-  el('t-sub').textContent = `${t.completed_files}/${t.total_files} files • ${humanSize(t.bytes_done)} / ${humanSize(t.total_bytes)}`;
+  el('t-sub').textContent = `${t.completed_files}/${t.total_files} files \u2022 ${humanSize(t.bytes_done)} / ${transferTotalSizeHuman}`;
   el('t-curfile').textContent = t.current_file;
   el('t-fileprog').style.width = Math.round(t.current_file_percent) + '%';
   el('t-speed').textContent = t.speed_human ? '~'+t.speed_human : '';
   el('t-eta').textContent = t.eta_human ? 'ETA: '+t.eta_human : '';
-  el('t-dest').textContent = t.destination;
+  el('t-dest').textContent = t.destination || '';
   renderQueue(t.file_list, t.completed_list, t.current_file_index);
 }
 
@@ -1384,6 +1432,13 @@ document.getElementById('file-list').addEventListener('click', function(e) {
   const item = e.target.closest('.file-item');
   if (!item || !item.dataset.name) return;
   toggleFile(item.dataset.name);
+});
+
+// Virtual scroll: repaint visible rows on scroll
+document.getElementById('file-list').addEventListener('scroll', function() {
+  if (!vsRAF) {
+    vsRAF = requestAnimationFrame(() => { vsRAF = null; paintVisibleRows(); });
+  }
 });
 
 init();
