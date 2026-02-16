@@ -10,14 +10,12 @@ Key features:
 - Speed + ETA tracking
 """
 
-import eventlet
-eventlet.monkey_patch()
-
 import os
 import json
 import shutil
 import subprocess
 import hashlib
+import threading
 import time
 import signal
 import sys
@@ -58,7 +56,7 @@ DEFAULT_CONFIG = {
 # ---------------------------------------------------------------------------
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "offloader-secret-key"
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # ---------------------------------------------------------------------------
 # Persistent transfer state (survives browser disconnects)
@@ -167,7 +165,7 @@ def send_discord(webhook_url, message):
             urllib.request.urlopen(req, timeout=10)
         except Exception as e:
             print(f"Discord webhook error: {e}")
-    socketio.start_background_task(_send)
+    threading.Thread(target=_send, daemon=True).start()
 
 
 def format_duration(seconds):
@@ -758,7 +756,8 @@ def on_start_transfer(data):
     transfer_state["finish_summary"] = None
 
     cfg = load_config()
-    socketio.start_background_task(transfer_worker, selected, cfg)
+    t = threading.Thread(target=transfer_worker, args=(selected, cfg), daemon=True)
+    t.start()
 
 
 @socketio.on("cancel_transfer")
@@ -812,7 +811,7 @@ def on_speed_test():
             except Exception:
                 pass
 
-    socketio.start_background_task(_run)
+    threading.Thread(target=_run, daemon=True).start()
 
 
 # ---------------------------------------------------------------------------
