@@ -721,7 +721,7 @@ def on_disconnect_nas():
 def on_rescan():
     if drive_state["drive_mounted"]:
         drive_state["files"] = scan_files(USB_MOUNT)
-        emit("files_updated", {"files": drive_state["files"]})
+        socketio.emit("files_updated", {"files": drive_state["files"]})
     else:
         drives = find_usb_drives()
         if drives:
@@ -731,11 +731,11 @@ def on_rescan():
                 drive_state["drive"] = d
                 drive_state["drive_mounted"] = True
                 drive_state["files"] = scan_files(USB_MOUNT)
-                emit("drive_connected", {"drive": d, "files": drive_state["files"]})
+                socketio.emit("drive_connected", {"drive": d, "files": drive_state["files"]})
             else:
-                emit("drive_error", {"device": d["device"], "error": err})
+                socketio.emit("drive_error", {"device": d["device"], "error": err})
         else:
-            emit("drive_disconnected", {})
+            socketio.emit("drive_disconnected", {})
 
 
 @socketio.on("start_transfer")
