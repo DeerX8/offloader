@@ -296,9 +296,6 @@ def find_usb_drives():
                     if part.get("type") not in ("part", "disk"):
                         continue
                     fstype = part.get("fstype") or ""
-                    # Skip partitions without a filesystem (e.g. swap, empty)
-                    if not fstype and part.get("type") == "part":
-                        continue
                     drives.append({
                         "device": f"/dev/{part['name']}",
                         "size": part.get("size", "?"),
@@ -357,10 +354,10 @@ def find_usb_drives():
 def mount_usb(device):
     """Mount a USB device read-only. Thread-safe via mount_lock."""
     with mount_lock:
-        os.makedirs(USB_MOUNT, exist_ok=True)
-        subprocess.run(["umount", USB_MOUNT], capture_output=True)
+        ensure_dir(USB_MOUNT)
+        subprocess.run(["sudo", "umount", USB_MOUNT], capture_output=True)
         r = subprocess.run(
-            ["mount", "-o", "ro", device, USB_MOUNT],
+            ["sudo", "mount", "-o", "ro", device, USB_MOUNT],
             capture_output=True, text=True,
         )
         if r.returncode != 0:
@@ -386,7 +383,7 @@ def mount_usb_with_retry(device, retries=MOUNT_RETRIES):
 def unmount_usb():
     """Unmount USB and clear drive state. Thread-safe via mount_lock."""
     with mount_lock:
-        subprocess.run(["umount", "-l", USB_MOUNT], capture_output=True)
+        subprocess.run(["sudo", "umount", "-l", USB_MOUNT], capture_output=True)
         drive_state["drive_mounted"] = False
         drive_state["drive"] = None
         drive_state["files"] = []
@@ -397,8 +394,8 @@ def unmount_usb():
 # NAS SMB mounting
 # ---------------------------------------------------------------------------
 def mount_nas(config):
-    os.makedirs(NAS_MOUNT, exist_ok=True)
-    subprocess.run(["umount", "-l", NAS_MOUNT], capture_output=True)
+    ensure_dir(NAS_MOUNT)
+    subprocess.run(["sudo", "umount", "-l", NAS_MOUNT], capture_output=True)
 
     ip = config["nas_ip"] if config.get("use_tailscale") else config.get("nas_ip_local", config["nas_ip"])
     share = f"//{ip}/{config['share_name']}"
@@ -411,7 +408,7 @@ def mount_nas(config):
     opts += ",uid=0,gid=0,file_mode=0777,dir_mode=0777"
 
     r = subprocess.run(
-        ["mount", "-t", "cifs", share, NAS_MOUNT, "-o", opts],
+        ["sudo", "mount", "-t", "cifs", share, NAS_MOUNT, "-o", opts],
         capture_output=True, text=True,
     )
     if r.returncode != 0:
@@ -420,7 +417,7 @@ def mount_nas(config):
 
 
 def unmount_nas():
-    subprocess.run(["umount", "-l", NAS_MOUNT], capture_output=True)
+    subprocess.run(["sudo", "umount", "-l", NAS_MOUNT], capture_output=True)
     drive_state["nas_mounted"] = False
 
 
@@ -926,10 +923,20 @@ def on_speed_test():
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+def ensure_dir(path):
+    """Create directory, using sudo if needed (for /mnt paths)."""
+    if os.path.isdir(path):
+        return
+    try:
+        os.makedirs(path, exist_ok=True)
+    except PermissionError:
+        subprocess.run(["sudo", "mkdir", "-p", path], check=True)
+
+
 def main():
-    os.makedirs(USB_MOUNT, exist_ok=True)
-    os.makedirs(NAS_MOUNT, exist_ok=True)
-    os.makedirs(CONFIG_DIR, exist_ok=True)
+    ensure_dir(USB_MOUNT)
+    ensure_dir(NAS_MOUNT)
+    ensure_dir(CONFIG_DIR)
 
     if not os.path.exists(CONFIG_FILE):
         save_config(DEFAULT_CONFIG)
