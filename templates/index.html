@@ -524,8 +524,11 @@
     <div class="status-grid">
       <!-- Drive Card -->
       <div class="card">
-        <div class="card-label">USB Drive</div>
-        <div class="status-row">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div class="card-label" style="margin-bottom:0">USB Drive</div>
+          <button class="btn btn-sm btn-s" id="refresh-drive-btn" onclick="refreshDrive()" style="padding:4px 10px;font-size:10px">Refresh</button>
+        </div>
+        <div class="status-row" style="margin-top:8px">
           <span class="dot dot-r" id="drive-dot"></span>
           <span id="drive-status">No drive connected</span>
         </div>
@@ -1212,13 +1215,13 @@ function init() {
   });
 
   socket.on('config_saved', (d) => { config = d.config; applyConfig(); updateNAS(); toast('Settings saved', true); });
-  socket.on('drive_connected', (d) => { driveConn = true; files = d.files || []; updateDrive(d.drive); renderFiles(); toast('Drive: ' + (d.drive?.model||'USB'), true); });
-  socket.on('drive_disconnected', () => { driveConn = false; files = []; selected.clear(); updateDrive(null); renderFiles(); updateSel(); toast('Drive disconnected'); });
-  socket.on('drive_error', (d) => toast('Drive error: ' + d.error));
+  socket.on('drive_connected', (d) => { driveConn = true; files = d.files || []; updateDrive(d.drive); renderFiles(); resetRefreshBtn(); toast('Drive: ' + (d.drive?.model||'USB'), true); });
+  socket.on('drive_disconnected', () => { driveConn = false; files = []; selected.clear(); updateDrive(null); renderFiles(); updateSel(); resetRefreshBtn(); toast('Drive disconnected'); });
+  socket.on('drive_error', (d) => { resetRefreshBtn(); toast('Drive error: ' + d.error); });
+  socket.on('files_updated', (d) => { files = d.files || []; renderFiles(); resetRefreshBtn(); });
   socket.on('nas_connected', () => { nasConn = true; updateNAS(); toast('NAS connected', true); });
   socket.on('nas_disconnected', () => { nasConn = false; updateNAS(); });
   socket.on('nas_error', (d) => { nasConn = false; updateNAS(); toast('NAS: ' + d.error); });
-  socket.on('files_updated', (d) => { files = d.files || []; renderFiles(); });
   socket.on('error', (d) => toast(d.message));
 
   socket.on('transfer_started', (d) => {
@@ -1407,6 +1410,18 @@ function newTransfer() {
 }
 
 // Actions
+function refreshDrive() {
+  const btn = el('refresh-drive-btn');
+  btn.disabled = true;
+  btn.textContent = 'Scanning...';
+  socket.emit('rescan_drive');
+  setTimeout(() => { btn.disabled = false; btn.textContent = 'Refresh'; }, 3000);
+}
+function resetRefreshBtn() {
+  const btn = el('refresh-drive-btn');
+  btn.disabled = false;
+  btn.textContent = 'Refresh';
+}
 function connectNAS() { el('nas-conn-btn').disabled=true; el('nas-conn-btn').textContent='Connecting...'; socket.emit('connect_nas'); setTimeout(()=>{el('nas-conn-btn').disabled=false;el('nas-conn-btn').textContent='Connect';},5000); }
 function disconnectNAS() { socket.emit('disconnect_nas'); }
 function saveSubfolder() { config.subfolder = el('subfolder-input').value.replace(/^\/+|\/+$/g,''); socket.emit('save_config',{subfolder:config.subfolder}); updatePath(); }

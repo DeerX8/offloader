@@ -19,12 +19,17 @@ import threading
 import time
 import signal
 import sys
+import logging
 import urllib.request
 import urllib.error
 from pathlib import Path
 from datetime import datetime, timedelta
 from flask import Flask, render_template, jsonify, request
 from flask_socketio import SocketIO, emit
+
+# Logging setup
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+log = logging.getLogger("offloader")
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -262,51 +267,130 @@ def update_speed():
 # ---------------------------------------------------------------------------
 # USB drive detection & mounting
 # ---------------------------------------------------------------------------
+mount_lock = threading.Lock()
+
+# How many times to retry mounting a newly detected drive
+MOUNT_RETRIES = 3
+MOUNT_RETRY_DELAY = 1.5  # seconds between retries
+
+
 def find_usb_drives():
+    """Detect USB drives using lsblk, with fallback to /dev/disk/by-id."""
+    drives = []
     try:
         r = subprocess.run(
             ["lsblk", "-J", "-o", "NAME,SIZE,TYPE,MOUNTPOINT,TRAN,MODEL,FSTYPE"],
             capture_output=True, text=True, timeout=5,
         )
-        data = json.loads(r.stdout)
-        drives = []
-        for dev in data.get("blockdevices", []):
-            if dev.get("tran") != "usb":
-                continue
-            children = dev.get("children", [])
-            targets = children if children else [dev]
-            for part in targets:
-                if part.get("type") not in ("part", "disk"):
+        if r.returncode == 0 and r.stdout.strip():
+            data = json.loads(r.stdout)
+            for dev in data.get("blockdevices", []):
+                # Accept "usb" transport, and also devices whose model is set
+                # but tran is empty (some USB-C adapters report this way)
+                tran = (dev.get("tran") or "").lower()
+                if tran != "usb":
                     continue
-                drives.append({
-                    "device": f"/dev/{part['name']}",
-                    "size": part.get("size", "?"),
-                    "model": (dev.get("model") or "USB Drive").strip(),
-                    "fstype": part.get("fstype", ""),
-                    "mountpoint": part.get("mountpoint"),
-                })
-        return drives
-    except Exception:
-        return []
+                children = dev.get("children", [])
+                targets = children if children else [dev]
+                for part in targets:
+                    if part.get("type") not in ("part", "disk"):
+                        continue
+                    fstype = part.get("fstype") or ""
+                    # Skip partitions without a filesystem (e.g. swap, empty)
+                    if not fstype and part.get("type") == "part":
+                        continue
+                    drives.append({
+                        "device": f"/dev/{part['name']}",
+                        "size": part.get("size", "?"),
+                        "model": (dev.get("model") or "USB Drive").strip(),
+                        "fstype": fstype,
+                        "mountpoint": part.get("mountpoint"),
+                    })
+    except Exception as e:
+        log.warning("lsblk detection failed: %s", e)
+
+    # Fallback: check /dev/disk/by-id for usb-* symlinks
+    if not drives:
+        try:
+            by_id = Path("/dev/disk/by-id")
+            if by_id.is_dir():
+                for link in by_id.iterdir():
+                    if not link.name.startswith("usb-"):
+                        continue
+                    # Skip whole-disk entries if a partition entry exists
+                    if "-part" not in link.name:
+                        has_part = any(
+                            p.name.startswith(link.name + "-part")
+                            for p in by_id.iterdir()
+                        )
+                        if has_part:
+                            continue
+                    real = link.resolve()
+                    dev_name = real.name
+                    size = "?"
+                    fstype = ""
+                    try:
+                        r2 = subprocess.run(
+                            ["lsblk", "-n", "-o", "SIZE,FSTYPE", str(real)],
+                            capture_output=True, text=True, timeout=3,
+                        )
+                        parts = r2.stdout.strip().split()
+                        if parts:
+                            size = parts[0]
+                        if len(parts) > 1:
+                            fstype = parts[1]
+                    except Exception:
+                        pass
+                    drives.append({
+                        "device": str(real),
+                        "size": size,
+                        "model": "USB Drive",
+                        "fstype": fstype,
+                        "mountpoint": None,
+                    })
+        except Exception as e:
+            log.warning("Fallback USB detection failed: %s", e)
+
+    return drives
 
 
 def mount_usb(device):
-    os.makedirs(USB_MOUNT, exist_ok=True)
-    subprocess.run(["umount", USB_MOUNT], capture_output=True)
-    r = subprocess.run(
-        ["mount", "-o", "ro", device, USB_MOUNT],
-        capture_output=True, text=True,
-    )
-    if r.returncode != 0:
-        return False, r.stderr
-    return True, ""
+    """Mount a USB device read-only. Thread-safe via mount_lock."""
+    with mount_lock:
+        os.makedirs(USB_MOUNT, exist_ok=True)
+        subprocess.run(["umount", USB_MOUNT], capture_output=True)
+        r = subprocess.run(
+            ["mount", "-o", "ro", device, USB_MOUNT],
+            capture_output=True, text=True,
+        )
+        if r.returncode != 0:
+            log.warning("mount_usb failed for %s: %s", device, r.stderr.strip())
+            return False, r.stderr
+        log.info("Mounted %s at %s", device, USB_MOUNT)
+        return True, ""
+
+
+def mount_usb_with_retry(device, retries=MOUNT_RETRIES):
+    """Try to mount a USB device, retrying on failure (drive may still be initializing)."""
+    for attempt in range(1, retries + 1):
+        ok, err = mount_usb(device)
+        if ok:
+            return True, ""
+        if attempt < retries:
+            log.info("Mount attempt %d/%d failed for %s, retrying in %.1fs...",
+                     attempt, retries, device, MOUNT_RETRY_DELAY)
+            time.sleep(MOUNT_RETRY_DELAY)
+    return False, err
 
 
 def unmount_usb():
-    subprocess.run(["umount", "-l", USB_MOUNT], capture_output=True)
-    drive_state["drive_mounted"] = False
-    drive_state["drive"] = None
-    drive_state["files"] = []
+    """Unmount USB and clear drive state. Thread-safe via mount_lock."""
+    with mount_lock:
+        subprocess.run(["umount", "-l", USB_MOUNT], capture_output=True)
+        drive_state["drive_mounted"] = False
+        drive_state["drive"] = None
+        drive_state["files"] = []
+        log.info("USB drive unmounted")
 
 
 # ---------------------------------------------------------------------------
@@ -589,35 +673,55 @@ def md5_file(path):
 # Background: poll for USB drive changes
 # ---------------------------------------------------------------------------
 def drive_monitor():
+    """Background thread: poll for USB drive changes every 2 seconds.
+
+    Uses retry logic for newly detected drives (kernel may still be
+    registering partitions when the device first appears).
+    """
     prev_drives = set()
     while True:
         try:
             drives = find_usb_drives()
             current = {d["device"] for d in drives}
 
-            if current - prev_drives:
-                new_devs = current - prev_drives
+            # New drive(s) detected
+            new_devs = current - prev_drives
+            if new_devs:
+                log.info("New USB device(s) detected: %s", new_devs)
+                # Brief settle delay — let kernel finish partition setup
+                time.sleep(1)
+                # Re-scan after settle to pick up any newly appeared partitions
+                drives = find_usb_drives()
+                current = {d["device"] for d in drives}
+
                 for d in drives:
                     if d["device"] in new_devs:
-                        ok, err = mount_usb(d["device"])
+                        ok, err = mount_usb_with_retry(d["device"])
                         if ok:
                             drive_state["drive"] = d
                             drive_state["drive_mounted"] = True
                             drive_state["files"] = scan_files(USB_MOUNT)
+                            log.info("Drive connected: %s (%s, %s)",
+                                     d["model"], d["device"], d["size"])
                             socketio.emit("drive_connected", {
                                 "drive": d, "files": drive_state["files"],
                             })
                         else:
-                            socketio.emit("drive_error", {"device": d["device"], "error": err})
+                            log.error("Failed to mount %s: %s", d["device"], err)
+                            socketio.emit("drive_error", {
+                                "device": d["device"], "error": err,
+                            })
                         break
 
+            # Drive removed
             if prev_drives - current and drive_state["drive_mounted"]:
+                log.info("USB device removed: %s", prev_drives - current)
                 unmount_usb()
                 socketio.emit("drive_disconnected", {})
 
             prev_drives = current
-        except Exception:
-            pass
+        except Exception as e:
+            log.error("drive_monitor error: %s", e)
         time.sleep(2)
 
 
@@ -721,21 +825,22 @@ def on_disconnect_nas():
 def on_rescan():
     if drive_state["drive_mounted"]:
         drive_state["files"] = scan_files(USB_MOUNT)
-        emit("files_updated", {"files": drive_state["files"]})
+        socketio.emit("files_updated", {"files": drive_state["files"]})
     else:
         drives = find_usb_drives()
         if drives:
             d = drives[0]
-            ok, err = mount_usb(d["device"])
+            log.info("Rescan: found %s (%s), attempting mount...", d["device"], d.get("model", ""))
+            ok, err = mount_usb_with_retry(d["device"])
             if ok:
                 drive_state["drive"] = d
                 drive_state["drive_mounted"] = True
                 drive_state["files"] = scan_files(USB_MOUNT)
-                emit("drive_connected", {"drive": d, "files": drive_state["files"]})
+                socketio.emit("drive_connected", {"drive": d, "files": drive_state["files"]})
             else:
-                emit("drive_error", {"device": d["device"], "error": err})
+                socketio.emit("drive_error", {"device": d["device"], "error": err})
         else:
-            emit("drive_disconnected", {})
+            socketio.emit("drive_disconnected", {})
 
 
 @socketio.on("start_transfer")
@@ -833,11 +938,17 @@ def main():
     drives = find_usb_drives()
     if drives:
         d = drives[0]
-        ok, _ = mount_usb(d["device"])
+        log.info("Startup: found USB drive %s (%s), mounting...", d["device"], d.get("model", ""))
+        ok, err = mount_usb_with_retry(d["device"])
         if ok:
             drive_state["drive"] = d
             drive_state["drive_mounted"] = True
             drive_state["files"] = scan_files(USB_MOUNT)
+            log.info("Startup: mounted %s with %d files", d["device"], len(drive_state["files"]))
+        else:
+            log.error("Startup: failed to mount %s: %s", d["device"], err)
+    else:
+        log.info("Startup: no USB drives detected")
 
     # Start background drive monitor
     socketio.start_background_task(drive_monitor)
